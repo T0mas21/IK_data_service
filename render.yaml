@@ -2,7 +2,8 @@ services:
   - type: web
     name: config-service
     env: docker
-    dockercontext: ./ConfigService
+    rootDir: ConfigService
+    dockercontext: .
     dockerfilePath: Dockerfile
     plan: free
     envVars:
@@ -16,7 +17,8 @@ services:
   - type: web
     name: scrapper-service
     env: docker
-    dockercontext: ./ScrapperService
+    rootDir: ScrapperService
+    dockercontext: .
     dockerfilePath: Dockerfile
     plan: free
     envVars:
