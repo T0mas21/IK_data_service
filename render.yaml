@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: config-service
+    env: docker
+    dockercontext: ./ConfigService
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+
+  - type: web
+    name: scrapper-service
+    env: docker
+    dockercontext: ./ScrapperService
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: CONFIG_SERVICE_URL
+        value: http://config-service:10000
