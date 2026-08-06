@@ -3,7 +3,7 @@ services:
     name: config-service
     env: docker
     rootDir: ConfigService
-    dockercontext: .
+    dockerContext: .
     dockerfilePath: Dockerfile
     plan: free
     envVars:
@@ -18,7 +18,7 @@ services:
     name: scrapper-service
     env: docker
     rootDir: ScrapperService
-    dockercontext: .
+    dockerContext: .
     dockerfilePath: Dockerfile
     plan: free
     envVars:
