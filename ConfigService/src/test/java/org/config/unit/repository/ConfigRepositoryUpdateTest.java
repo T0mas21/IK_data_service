@@ -10,25 +10,37 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigRepositoryUpdateTest extends BaseConfigRepositoryTest {
 
     @Test
-    void updateDataByName_WhenExists_ShouldUpdateDataAndReturnUpdatedRowsCount() throws Exception {
+    void update_WhenExists_ShouldUpdateFieldsCorrectly() {
         Config config = new Config();
         config.setName("to_update");
-        config.setData("{\"version\":1}");
+        config.setDescription("Původní popis");
+        config.setTimeout(1000);
+        config.setUserAgent("OldAgent");
+        config.setUrl("https://old-url.com");
+
         entityManager.persistAndFlush(config);
         entityManager.clear();
 
-        int updatedCount = configRepository.updateDataByName("to_update", "{\"version\":2}");
+        Config existingConfig = configRepository.findByName("to_update").orElseThrow();
+        existingConfig.setDescription("Nový popis");
+        existingConfig.setTimeout(5000);
+        existingConfig.setUserAgent("NewAgent");
+        existingConfig.setUrl("https://new-url.com");
 
-        assertEquals(1, updatedCount);
+        configRepository.save(existingConfig);
+        entityManager.flush();
+        entityManager.clear();
 
         Config updated = configRepository.findByName("to_update").orElseThrow();
-        JSONAssert.assertEquals("{\"version\":2}", updated.getData(), JSONCompareMode.LENIENT);
+
+        assertEquals("Nový popis", updated.getDescription());
+        assertEquals(5000, updated.getTimeout());
+        assertEquals("NewAgent", updated.getUserAgent());
+        assertEquals("https://new-url.com", updated.getUrl());
     }
 
     @Test
-    void updateDataByName_WhenNotExists_ShouldReturnZero() {
-        int updatedCount = configRepository.updateDataByName("non_existing", "{\"version\":2}");
-
-        assertEquals(0, updatedCount);
+    void findByName_WhenNotExists_ShouldReturnEmptyOptional() {
+        assertTrue(configRepository.findByName("non_existing").isEmpty());
     }
 }

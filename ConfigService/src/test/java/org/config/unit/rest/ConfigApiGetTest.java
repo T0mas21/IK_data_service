@@ -15,7 +15,13 @@ class ConfigApiGetTest extends BaseConfigApiTest {
     @Test
     void getByName_ShouldReturn200OKAndConfig() {
         String name = "app_setting";
-        ConfigDto expectedDto = new ConfigDto(name, "{\"theme\":\"dark\"}");
+        ConfigDto expectedDto = new ConfigDto(
+                name,
+                "Aplikacni nastaveni",
+                5000,
+                "Mozilla/5.0",
+                "https://example.com"
+        );
 
         when(configFacade.findByName(name)).thenReturn(expectedDto);
 
@@ -24,6 +30,11 @@ class ConfigApiGetTest extends BaseConfigApiTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(name, response.getBody().name());
+        assertEquals("Aplikacni nastaveni", response.getBody().description());
+        assertEquals(5000, response.getBody().timeout());
+        assertEquals("Mozilla/5.0", response.getBody().userAgent());
+        assertEquals("https://example.com", response.getBody().url());
+
         verify(configFacade).findByName(name);
     }
 
@@ -44,8 +55,8 @@ class ConfigApiGetTest extends BaseConfigApiTest {
     @Test
     void getAll_ShouldReturn200OKAndListOfConfigs() {
         List<ConfigDto> configs = List.of(
-                new ConfigDto("config1", "{\"v\":1}"),
-                new ConfigDto("config2", "{\"v\":2}")
+                new ConfigDto("config1", "Popis 1", 1000, "Agent 1", "https://example1.com"),
+                new ConfigDto("config2", "Popis 2", 2000, "Agent 2", "https://example2.com")
         );
         when(configFacade.findAll()).thenReturn(configs);
 
@@ -54,6 +65,9 @@ class ConfigApiGetTest extends BaseConfigApiTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
+        assertEquals("config1", response.getBody().get(0).name());
+        assertEquals("config2", response.getBody().get(1).name());
+
         verify(configFacade).findAll();
     }
 }

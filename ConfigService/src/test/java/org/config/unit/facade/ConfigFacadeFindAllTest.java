@@ -26,10 +26,21 @@ class ConfigFacadeFindAllTest extends BaseConfigFacadeTest {
     @Test
     void findAll_Success() {
         Config entity1 = new Config();
-        Config entity2 = new Config();
+        entity1.setName("config1");
+        entity1.setDescription("Popis 1");
+        entity1.setTimeout(1000);
+        entity1.setUserAgent("Agent 1");
+        entity1.setUrl("https://example1.com");
 
-        ConfigDto dto1 = new ConfigDto("config1", "{\"v\":1}");
-        ConfigDto dto2 = new ConfigDto("config2", "{\"v\":2}");
+        Config entity2 = new Config();
+        entity2.setName("config2");
+        entity2.setDescription("Popis 2");
+        entity2.setTimeout(2000);
+        entity2.setUserAgent("Agent 2");
+        entity2.setUrl("https://example2.com");
+
+        ConfigDto dto1 = new ConfigDto("config1", "Popis 1", 1000, "Agent 1", "https://example1.com");
+        ConfigDto dto2 = new ConfigDto("config2", "Popis 2", 2000, "Agent 2", "https://example2.com");
 
         when(configService.findAll()).thenReturn(List.of(entity1, entity2));
         when(configMapper.toDto(entity1)).thenReturn(dto1);
@@ -39,9 +50,12 @@ class ConfigFacadeFindAllTest extends BaseConfigFacadeTest {
 
         assertEquals(2, result.size());
         assertEquals("config1", result.get(0).name());
+        assertEquals("Popis 1", result.get(0).description());
         assertEquals("config2", result.get(1).name());
+        assertEquals("Popis 2", result.get(1).description());
 
         verify(configService).findAll();
-        verify(configMapper, times(2)).toDto(any());
+        verify(configMapper).toDto(entity1);
+        verify(configMapper).toDto(entity2);
     }
 }

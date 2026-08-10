@@ -21,9 +21,4 @@ public interface ConfigRepository extends JpaRepository<Config, Long> {
 
     @Transactional
     void deleteByName(String name);
-
-    @Transactional
-    @Modifying
-    @Query("UPDATE Config c SET c.data = :newData WHERE c.name = :name")
-    int updateDataByName(@Param("name") String name, @Param("newData") String newData);
 }

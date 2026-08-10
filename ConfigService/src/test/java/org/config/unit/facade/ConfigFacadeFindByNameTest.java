@@ -14,8 +14,18 @@ class ConfigFacadeFindByNameTest extends BaseConfigFacadeTest {
         String name = "my_config";
         Config entity = new Config();
         entity.setName(name);
+        entity.setDescription("Popis konfigurace");
+        entity.setTimeout(3000);
+        entity.setUserAgent("Mozilla/5.0");
+        entity.setUrl("https://example.com");
 
-        ConfigDto expectedDto = new ConfigDto(name, "{\"key\":\"val\"}");
+        ConfigDto expectedDto = new ConfigDto(
+                name,
+                "Popis konfigurace",
+                3000,
+                "Mozilla/5.0",
+                "https://example.com"
+        );
 
         when(configService.findByName(name)).thenReturn(entity);
         when(configMapper.toDto(entity)).thenReturn(expectedDto);
@@ -24,7 +34,10 @@ class ConfigFacadeFindByNameTest extends BaseConfigFacadeTest {
 
         assertNotNull(result);
         assertEquals(name, result.name());
-        assertEquals("{\"key\":\"val\"}", result.data());
+        assertEquals("Popis konfigurace", result.description());
+        assertEquals(3000, result.timeout());
+        assertEquals("Mozilla/5.0", result.userAgent());
+        assertEquals("https://example.com", result.url());
 
         verify(configService).findByName(name);
         verify(configMapper).toDto(entity);

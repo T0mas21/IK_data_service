@@ -1,5 +1,6 @@
 package org.config.facade;
 
+import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
 
 import java.util.List;
@@ -9,6 +10,6 @@ public interface ConfigFacade {
     ConfigDto findByName(String name);
     List<String> findAllNames();
     List<ConfigDto> findAll();
-    void updateDataByName(String name, String newData);
+    void updateConfig(String name, ConfigDto newConfig);
     void deleteByName(String name);
 }

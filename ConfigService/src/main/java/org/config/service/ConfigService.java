@@ -15,7 +15,7 @@ public interface ConfigService {
 
     List<Config> findAll();
 
-    void updateDataByName(String name, String newData);
+    Config updateConfig(String name, Config updatedConfig);
 
     void deleteByName(String name);
 }

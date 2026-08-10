@@ -49,8 +49,9 @@ public class ConfigFacadeImpl implements ConfigFacade {
     }
 
     @Override
-    public void updateDataByName(String name, String newData) {
-        configService.updateDataByName(name, newData);
+    public void updateConfig(String name, ConfigDto newConfig) {
+        Config newConfigEntity = configMapper.toEntity(newConfig);
+        configService.updateConfig(name, newConfigEntity);
     }
 
     @Override

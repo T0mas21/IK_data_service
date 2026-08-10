@@ -16,7 +16,10 @@ public class ConfigMapperImpl implements ConfigMapper {
 
         return new ConfigDto(
                 configEntity.getName(),
-                configEntity.getData()
+                configEntity.getDescription(),
+                configEntity.getTimeout(),
+                configEntity.getUserAgent(),
+                configEntity.getUrl()
         );
     }
 
@@ -28,9 +31,11 @@ public class ConfigMapperImpl implements ConfigMapper {
 
         Config config = new Config();
         config.setName(configDto.name());
-        config.setData(configDto.data());
+        config.setDescription(configDto.description());
+        config.setTimeout(configDto.timeout());
+        config.setUserAgent(configDto.userAgent());
+        config.setUrl(configDto.url());
 
         return config;
     }
-
 }

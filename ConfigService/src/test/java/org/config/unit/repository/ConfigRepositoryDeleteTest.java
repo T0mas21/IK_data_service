@@ -6,14 +6,17 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 class ConfigRepositoryDeleteTest extends BaseConfigRepositoryTest {
 
     @Test
     void deleteByName_WhenExists_ShouldRemoveRecord() {
         Config config = new Config();
         config.setName("to_delete");
-        config.setData("{}");
+        config.setDescription("Konfigurace ke smazání");
+        config.setTimeout(2000);
+        config.setUserAgent("Mozilla/5.0");
+        config.setUrl("https://example.com");
+
         entityManager.persistAndFlush(config);
 
         configRepository.deleteByName("to_delete");

@@ -1,6 +1,7 @@
 package org.config.rest;
 
 import jakarta.validation.Valid;
+import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
 import org.config.facade.ConfigFacade;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +46,8 @@ public class ConfigApi {
     }
 
     @PutMapping("/{name}")
-    public ResponseEntity<Void> updateDataByName(@PathVariable String name, @RequestBody String newData) {
-        configFacade.updateDataByName(name, newData);
+    public ResponseEntity<Void> updateConfig(@PathVariable String name, @RequestBody ConfigDto newData) {
+        configFacade.updateConfig(name, newData);
         return ResponseEntity.noContent().build();
     }
 

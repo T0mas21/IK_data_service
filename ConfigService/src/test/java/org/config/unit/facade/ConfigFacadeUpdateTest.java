@@ -1,18 +1,28 @@
 package org.config.unit.facade;
 
+import org.config.dto.ConfigDto;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 class ConfigFacadeUpdateTest extends BaseConfigFacadeTest {
 
     @Test
-    void updateDataByName_Success() {
+    void updateConfig_Success() {
         String name = "my_config";
-        String newData = "{\"key\":\"val\"}";
+        ConfigDto dto = new ConfigDto(
+                name,
+                "Popis konfigurace",
+                5000,
+                "Mozilla/5.0",
+                "https://example.com"
+        );
 
-        assertDoesNotThrow(() -> configFacade.updateDataByName(name, newData));
-        verify(configService).updateDataByName(name, newData);
+        assertDoesNotThrow(() -> configFacade.updateConfig(name, dto));
+
+        verify(configService).updateConfig(eq(name), any());
     }
 }

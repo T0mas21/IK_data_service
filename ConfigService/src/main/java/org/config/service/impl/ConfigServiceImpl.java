@@ -16,10 +16,12 @@ import java.util.Optional;
 @Service
 public class ConfigServiceImpl implements ConfigService {
 
+    private final ConfigRepository configRepository;
+
     @Autowired
-    private ConfigRepository configRepository;
-    @Autowired
-    private ObjectMapper objectMapper;
+    public ConfigServiceImpl(ConfigRepository configRepository) {
+        this.configRepository = configRepository;
+    }
 
     @Override
     public Config createConfig(Config newConfig) {
@@ -37,10 +39,10 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
 
-        if (!isValidJson(newConfig.getData())) {
+        if (newConfig.getTimeout() != null && newConfig.getTimeout() < 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Pole 'data' neobsahuje validní JSON formát."
+                    "Timeout nesmí být záporná hodnota."
             );
         }
 
@@ -57,42 +59,48 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
-    public List<String> findAllNames(){
+    public List<String> findAllNames() {
         return this.configRepository.findAllNames();
     }
 
     @Override
-    public List<Config> findAll(){
+    public List<Config> findAll() {
         return this.configRepository.findAll();
     }
 
     @Override
     @Transactional
-    public void updateDataByName(String name, String newData) {
-        if (!isValidJson(newData)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nová data neobsahují validní JSON.");
+    public Config updateConfig(String name, Config updatedConfig) {
+        Config existingConfig = configRepository.findByName(name)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Konfigurační soubor '" + name + "' neexistuje."
+                ));
+
+        if (updatedConfig.getTimeout() != null && updatedConfig.getTimeout() < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Timeout nesmí být záporná hodnota."
+            );
         }
 
-        Config config = configRepository.findByName(name)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Konfigurační soubor neexistuje."));
+        existingConfig.setDescription(updatedConfig.getDescription());
+        existingConfig.setTimeout(updatedConfig.getTimeout());
+        existingConfig.setUserAgent(updatedConfig.getUserAgent());
+        existingConfig.setUrl(updatedConfig.getUrl());
 
-        config.setData(newData);
+        return existingConfig;
     }
 
     @Override
-    public void deleteByName(String name){
+    @Transactional
+    public void deleteByName(String name) {
+        if (configRepository.findByName(name).isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Konfigurační soubor '" + name + "' neexistuje."
+            );
+        }
         this.configRepository.deleteByName(name);
-    }
-
-    private boolean isValidJson(String jsonString) {
-        if (jsonString == null || jsonString.isBlank()) {
-            return false;
-        }
-        try {
-            objectMapper.readTree(jsonString);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
     }
 }

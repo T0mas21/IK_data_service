@@ -11,7 +11,10 @@ class ConfigRepositoryCreateTest extends BaseConfigRepositoryTest {
     void save_ShouldPersistConfig() {
         Config config = new Config();
         config.setName("app_setting");
-        config.setData("{\"theme\":\"dark\"}");
+        config.setDescription("Aplikacni nastaveni");
+        config.setTimeout(5000);
+        config.setUserAgent("Mozilla/5.0");
+        config.setUrl("https://example.com");
 
         Config saved = configRepository.save(config);
 
@@ -19,6 +22,10 @@ class ConfigRepositoryCreateTest extends BaseConfigRepositoryTest {
         assertEquals("app_setting", saved.getName());
 
         Config found = entityManager.find(Config.class, saved.getId());
-        assertEquals("{\"theme\":\"dark\"}", found.getData());
+        assertNotNull(found);
+        assertEquals("Aplikacni nastaveni", found.getDescription());
+        assertEquals(5000, found.getTimeout());
+        assertEquals("Mozilla/5.0", found.getUserAgent());
+        assertEquals("https://example.com", found.getUrl());
     }
 }

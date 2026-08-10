@@ -17,9 +17,17 @@ public class Config {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private String data;
+    @Column(length = 255)
+    private String description;
+
+    @Column
+    private Integer timeout;
+
+    @Column(name = "user_agent", length = 255)
+    private String userAgent;
+
+    @Column(length = 500)
+    private String url;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -29,10 +37,13 @@ public class Config {
 
     public Config() {}
 
-    public Config(Long id, String name, String data, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Config(Long id, String name, String description, Integer timeout, String userAgent, String url, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
-        this.data = data;
+        this.description = description;
+        this.timeout = timeout;
+        this.userAgent = userAgent;
+        this.url = url;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -53,12 +64,36 @@ public class Config {
         this.name = name;
     }
 
-    public String getData() {
-        return data;
+    public String getDescription() {
+        return description;
     }
 
-    public void setData(String data) {
-        this.data = data;
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Integer getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(Integer timeout) {
+        this.timeout = timeout;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public LocalDateTime getCreatedAt() {

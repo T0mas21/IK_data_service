@@ -12,8 +12,21 @@ class ConfigApiCreateTest extends BaseConfigApiTest {
 
     @Test
     void createConfig_ShouldReturn201CreatedAndBody() {
-        ConfigDto inputDto = new ConfigDto("app_setting", "{\"theme\":\"dark\"}");
-        ConfigDto createdDto = new ConfigDto("app_setting", "{\"theme\":\"dark\"}");
+        ConfigDto inputDto = new ConfigDto(
+                "app_setting",
+                "Aplikacni nastaveni",
+                5000,
+                "Mozilla/5.0",
+                "https://example.com"
+        );
+
+        ConfigDto createdDto = new ConfigDto(
+                "app_setting",
+                "Aplikacni nastaveni",
+                5000,
+                "Mozilla/5.0",
+                "https://example.com"
+        );
 
         when(configFacade.createConfig(inputDto)).thenReturn(createdDto);
 
@@ -22,6 +35,11 @@ class ConfigApiCreateTest extends BaseConfigApiTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("app_setting", response.getBody().name());
+        assertEquals("Aplikacni nastaveni", response.getBody().description());
+        assertEquals(5000, response.getBody().timeout());
+        assertEquals("Mozilla/5.0", response.getBody().userAgent());
+        assertEquals("https://example.com", response.getBody().url());
+
         verify(configFacade).createConfig(inputDto);
     }
 }

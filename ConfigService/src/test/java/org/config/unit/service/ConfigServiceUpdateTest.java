@@ -2,6 +2,8 @@ package org.config.unit.service;
 
 import org.config.data.model.Config;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -11,42 +13,63 @@ import static org.mockito.Mockito.*;
 class ConfigServiceUpdateTest extends BaseConfigServiceTest {
 
     @Test
-    void updateDataByName_Success() {
+    void updateConfig_Success() {
         String name = "my_config";
-        String newData = "{\"key\":\"value\"}";
+        Config existingConfig = new Config();
+        existingConfig.setName(name);
 
-        when(configRepository.findByName(name)).thenReturn(Optional.of(new Config()));
+        Config updatedConfig = new Config();
+        updatedConfig.setDescription("Nový popis");
+        updatedConfig.setTimeout(3000);
+        updatedConfig.setUserAgent("Mozilla/5.0");
+        updatedConfig.setUrl("https://example.com");
 
-        assertDoesNotThrow(() -> configService.updateDataByName(name, newData));
-        verify(configRepository, times(1)).updateDataByName(name, newData);
+        when(configRepository.findByName(name)).thenReturn(Optional.of(existingConfig));
+
+        Config result = configService.updateConfig(name, updatedConfig);
+
+        assertNotNull(result);
+        assertEquals("Nový popis", result.getDescription());
+        assertEquals(3000, result.getTimeout());
+        assertEquals("Mozilla/5.0", result.getUserAgent());
+        assertEquals("https://example.com", result.getUrl());
+
+        verify(configRepository).findByName(name);
     }
 
     @Test
-    void updateDataByName_ThrowsException_WhenNotFound() {
+    void updateConfig_ThrowsException_WhenNotFound() {
         String name = "non_existing";
+        Config updatedConfig = new Config();
+
         when(configRepository.findByName(name)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> configService.updateDataByName(name, "some_data")
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.updateConfig(name, updatedConfig)
         );
 
-        assertEquals("Konfigurační soubor neexistuje.", exception.getMessage());
-        verify(configRepository, never()).updateDataByName(anyString(), anyString());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Konfigurační soubor '" + name + "' neexistuje.", exception.getReason());
     }
 
     @Test
-    void updateDataByName_ThrowsException_WhenNameIsInvalidOrBlank() {
-        // Současná logika v Service vrství neověřuje 'name' na null/blank explicitně,
-        // ale repozitář při prázdném jménu nic nenajde a vyhodí RuntimeException:
-        when(configRepository.findByName("")).thenReturn(Optional.empty());
+    void updateConfig_ThrowsException_WhenTimeoutIsNegative() {
+        String name = "my_config";
+        Config existingConfig = new Config();
+        existingConfig.setName(name);
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> configService.updateDataByName("", "data")
+        Config updatedConfig = new Config();
+        updatedConfig.setTimeout(-100);
+
+        when(configRepository.findByName(name)).thenReturn(Optional.of(existingConfig));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.updateConfig(name, updatedConfig)
         );
 
-        assertEquals("Konfigurační soubor neexistuje.", exception.getMessage());
-        verify(configRepository, never()).updateDataByName(anyString(), anyString());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Timeout nesmí být záporná hodnota.", exception.getReason());
     }
 }
