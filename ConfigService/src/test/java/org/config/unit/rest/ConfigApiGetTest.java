@@ -1,6 +1,7 @@
 package org.config.unit.rest;
 
 import org.config.dto.ConfigDto;
+import org.config.dto.ConfigNamesDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,16 +41,19 @@ class ConfigApiGetTest extends BaseConfigApiTest {
 
     @Test
     void getAllNames_ShouldReturn200OKAndListOfNames() {
-        List<String> names = List.of("config1", "config2");
-        when(configFacade.findAllNames()).thenReturn(names);
+        ConfigNamesDto configNamesDto = new ConfigNamesDto(List.of("config1", "config2"));
+        when(configFacade.findAllNames()).thenReturn(configNamesDto);
 
-        ResponseEntity<List<String>> response = configApi.getAllNames();
+        ResponseEntity<ConfigNamesDto> response = configApi.getAllNames();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
-        assertTrue(response.getBody().contains("config1"));
-        verify(configFacade).findAllNames();
+        assertNotNull(response.getBody().getNames());
+        assertEquals(2, response.getBody().getNames().size());
+        assertTrue(response.getBody().getNames().contains("config1"));
+        assertTrue(response.getBody().getNames().contains("config2"));
+
+        verify(configFacade, times(1)).findAllNames();
     }
 
     @Test

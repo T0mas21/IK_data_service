@@ -2,6 +2,7 @@ package org.config.facade.impl;
 
 import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
+import org.config.dto.ConfigNamesDto;
 import org.config.facade.ConfigFacade;
 import org.config.mappers.ConfigMapper;
 import org.config.service.ConfigService;
@@ -36,8 +37,9 @@ public class ConfigFacadeImpl implements ConfigFacade {
     }
 
     @Override
-    public List<String> findAllNames() {
-        return configService.findAllNames();
+    public ConfigNamesDto findAllNames() {
+        List<String> names = configService.findAllNames();
+        return new ConfigNamesDto(names);
     }
 
     @Override

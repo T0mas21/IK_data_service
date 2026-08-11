@@ -3,6 +3,7 @@ package org.config.rest;
 import jakarta.validation.Valid;
 import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
+import org.config.dto.ConfigNamesDto;
 import org.config.facade.ConfigFacade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,7 +37,7 @@ public class ConfigApi {
     }
 
     @GetMapping("/names")
-    public ResponseEntity<List<String>> getAllNames() {
+    public ResponseEntity<ConfigNamesDto> getAllNames() {
         return ResponseEntity.ok(configFacade.findAllNames());
     }
 

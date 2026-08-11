@@ -2,6 +2,7 @@ package org.config.unit.facade;
 
 import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
+import org.config.dto.ConfigNamesDto;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,11 +17,15 @@ class ConfigFacadeFindAllTest extends BaseConfigFacadeTest {
         List<String> names = List.of("config1", "config2");
         when(configService.findAllNames()).thenReturn(names);
 
-        List<String> result = configFacade.findAllNames();
+        ConfigNamesDto result = configFacade.findAllNames();
 
-        assertEquals(2, result.size());
-        assertTrue(result.contains("config1"));
-        verify(configService).findAllNames();
+        assertNotNull(result);
+        assertNotNull(result.getNames());
+        assertEquals(2, result.getNames().size());
+        assertTrue(result.getNames().contains("config1"));
+        assertTrue(result.getNames().contains("config2"));
+
+        verify(configService, times(1)).findAllNames();
     }
 
     @Test
