@@ -2,6 +2,7 @@ package org.config.facade.impl;
 
 import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
+import org.config.dto.ConfigNameItemDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.facade.ConfigFacade;
 import org.config.mappers.ConfigMapper;
@@ -38,8 +39,11 @@ public class ConfigFacadeImpl implements ConfigFacade {
 
     @Override
     public ConfigNamesDto findAllNames() {
-        List<String> names = configService.findAllNames();
-        return new ConfigNamesDto(names);
+        List<ConfigNameItemDto> items = configService.findAllNames()
+                .stream()
+                .map(ConfigNameItemDto::new)
+                .toList();
+        return new ConfigNamesDto(items);
     }
 
     @Override

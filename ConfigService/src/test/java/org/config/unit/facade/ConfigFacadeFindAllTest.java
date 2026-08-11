@@ -22,8 +22,8 @@ class ConfigFacadeFindAllTest extends BaseConfigFacadeTest {
         assertNotNull(result);
         assertNotNull(result.getNames());
         assertEquals(2, result.getNames().size());
-        assertTrue(result.getNames().contains("config1"));
-        assertTrue(result.getNames().contains("config2"));
+        assertEquals("config1", result.getNames().get(0).getName());
+        assertEquals("config2", result.getNames().get(1).getName());
 
         verify(configService, times(1)).findAllNames();
     }
