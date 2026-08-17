@@ -2,11 +2,15 @@ version: '3.8'
 
 services:
   config-service:
-    build: ./ConfigService
+    build:
+      context: .
+      dockerfile: ConfigService/Dockerfile
     ports:
       - "8081:8081"
 
   scrapper-service:
-    build: ./ScrapperService
+    build:
+      context: .
+      dockerfile: ScrapperService/Dockerfile
     ports:
       - "8082:8082"

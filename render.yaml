@@ -2,9 +2,8 @@ services:
   - type: web
     name: config-service
     env: docker
-    rootDir: ConfigService
     dockerContext: .
-    dockerfilePath: Dockerfile
+    dockerfilePath: ConfigService/Dockerfile
     plan: free
     envVars:
       - key: DB_URL
@@ -17,9 +16,8 @@ services:
   - type: web
     name: scrapper-service
     env: docker
-    rootDir: ScrapperService
     dockerContext: .
-    dockerfilePath: Dockerfile
+    dockerfilePath: ScrapperService/Dockerfile
     plan: free
     envVars:
       - key: CONFIG_SERVICE_URL
