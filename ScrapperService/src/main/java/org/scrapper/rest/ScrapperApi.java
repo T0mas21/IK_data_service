@@ -2,10 +2,13 @@ package org.scrapper.rest;
 
 import jakarta.validation.Valid;
 import org.scrapper.dto.ScrapeRequestDto;
+import org.scrapper.enums.ScrapperStrategy;
 import org.scrapper.service.ScrapperService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/scrapper_api/scrape")
@@ -18,7 +21,7 @@ public class ScrapperApi {
         this.scrapperService = scrapperService;
     }
 
-    @GetMapping
+    @GetMapping("/scrape")
     public ResponseEntity<Object> scrape(@Valid ScrapeRequestDto requestDto) {
         return ResponseEntity.ok(scrapperService.scrape(
                 requestDto.url(),
@@ -26,5 +29,10 @@ public class ScrapperApi {
                 requestDto.userAgent(),
                 requestDto.strategy()
         ));
+    }
+
+    @GetMapping("/strategies")
+    public List<ScrapperStrategy> getAllStrategies() {
+        return List.of(ScrapperStrategy.values());
     }
 }

@@ -26,9 +26,21 @@ public class ScrapperServiceImpl implements ScrapperService {
         if (strategy == ScrapperStrategy.EXTRACT_TABLES) {
             return getTable(htmlDocument);
         } else if (strategy == ScrapperStrategy.EXTRACT_TEXT) {
-            // Zabalení textu do Mapy přímo ve službě -> vrací JSON {"text": "..."}
             String textResult = extractText(htmlDocument);
             return Map.of("text", textResult);
+        } else if (strategy == ScrapperStrategy.DOWNLOAD_FILE) {
+            List<Map<String, String>> filesResult = extractDownloadLinks(htmlDocument);
+            return Map.of("files", filesResult);
+        } else if (strategy == null) {
+            String textResult = extractText(htmlDocument);
+            Object tablesResult = getTable(htmlDocument);
+            List<Map<String, String>> filesResult = extractDownloadLinks(htmlDocument);
+
+            return Map.of(
+                    "text", textResult,
+                    "tables", tablesResult,
+                    "files", filesResult
+            );
         } else {
             throw new IllegalArgumentException("Scrapper Error: Unsupported strategy: " + strategy);
         }
@@ -127,5 +139,34 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
 
         return cleanText.toString().trim();
+    }
+
+    private List<Map<String, String>> extractDownloadLinks(Document htmlDocument) {
+        Elements linkElements = htmlDocument.select("a[href]");
+        List<Map<String, String>> downloadLinks = new ArrayList<>();
+
+        String fileExtensionsRegex = "(?i).*\\.(pdf|zip|rar|7z|csv|xlsx?|docx?|txt|pptx?|xml|json|mp3|mp4|exe|apk)$";
+
+        for (Element link : linkElements) {
+            String href = link.attr("abs:href");
+            String rawHref = link.attr("href");
+            String anchorText = link.text().trim();
+
+            boolean isDownloadAttr = link.hasAttr("download");
+            boolean isFileExtension = rawHref.matches(fileExtensionsRegex);
+
+            boolean isInsideTable = link.parents().is("table");
+
+            boolean textMentionsFile = anchorText.matches("(?i).*(pdf|docx?|xlsx?|zip|rar|csv).*");
+
+            if (isDownloadAttr || isFileExtension || isInsideTable || textMentionsFile) {
+                Map<String, String> fileData = new LinkedHashMap<>();
+                fileData.put("name", anchorText.isEmpty() ? "unnamed_file" : anchorText);
+                fileData.put("url", href.isEmpty() ? rawHref : href);
+                downloadLinks.add(fileData);
+            }
+        }
+
+        return downloadLinks;
     }
 }

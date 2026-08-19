@@ -17,6 +17,5 @@ public record ScrapeRequestDto(
         @NotBlank(message = "User-Agent nesmí být prázdný")
         String userAgent,
 
-        @NotNull(message = "Strategie je povinná")
         ScrapperStrategy strategy
 ) {}
