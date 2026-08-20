@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/scrapper_api/scrape")
@@ -32,7 +33,7 @@ public class ScrapperApi {
     }
 
     @GetMapping("/strategies")
-    public List<ScrapperStrategy> getAllStrategies() {
-        return List.of(ScrapperStrategy.values());
+    public Map<String, List<ScrapperStrategy>> getAllStrategies() {
+        return Map.of("strategies", List.of(ScrapperStrategy.values()));
     }
 }
