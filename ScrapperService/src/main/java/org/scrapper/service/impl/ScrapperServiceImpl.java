@@ -60,13 +60,13 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
     }
 
-    public Map<String, List<Map<String, List<Map<String, Object>>>>> getTable(Document htmlDocument) {
+    public Map<String, List<Map<String, List<Map<String, Map<String, Object>>>>>> getTable(Document htmlDocument) {
         Elements allTables = htmlDocument.select("table");
         if (allTables.isEmpty()) {
             return Map.of("tables", Collections.emptyList());
         }
 
-        List<Map<String, List<Map<String, Object>>>> wrappedTablesList = new ArrayList<>();
+        List<Map<String, List<Map<String, Map<String, Object>>>>> wrappedTablesList = new ArrayList<>();
 
         for (Element table : allTables) {
             Elements rows = table.select("tr");
@@ -79,7 +79,7 @@ public class ScrapperServiceImpl implements ScrapperService {
                 headers.add(text.isEmpty() ? "column_" + (i + 1) : text);
             }
 
-            List<Map<String, Object>> tableRows = new ArrayList<>();
+            List<Map<String, Map<String, Object>>> tableRows = new ArrayList<>();
 
             for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
                 Elements cells = rows.get(rowIndex).select("td");
@@ -103,7 +103,8 @@ public class ScrapperServiceImpl implements ScrapperService {
                         rowObject.put(columnName, cellValue);
                     }
                 }
-                tableRows.add(rowObject);
+
+                tableRows.add(Map.of("row", rowObject));
             }
 
             wrappedTablesList.add(Map.of("table", tableRows));
