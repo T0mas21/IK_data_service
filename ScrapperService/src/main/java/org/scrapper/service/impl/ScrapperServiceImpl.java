@@ -25,8 +25,7 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
 
         if (strategy == ScrapperStrategy.EXTRACT_TABLES) {
-            List<List<Map<String, Object>>> tables = getTable(htmlDocument);
-            return Map.of("tables", tables);
+            return getTable(htmlDocument);
         } else if (strategy == ScrapperStrategy.EXTRACT_TEXT) {
             String textResult = extractText(htmlDocument);
             return Map.of("text", textResult);
@@ -35,7 +34,7 @@ public class ScrapperServiceImpl implements ScrapperService {
             return Map.of("files", filesResult);
         } else if (strategy == null) {
             String textResult = extractText(htmlDocument);
-            List<List<Map<String, Object>>> tablesResult = getTable(htmlDocument);
+            Object tablesResult = getTable(htmlDocument).get("tables");
             List<Map<String, String>> filesResult = extractDownloadLinks(htmlDocument);
 
             return Map.of(
@@ -61,13 +60,13 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
     }
 
-    public List<List<Map<String, Object>>> getTable(Document htmlDocument) {
+    public Map<String, List<Map<String, List<Map<String, Object>>>>> getTable(Document htmlDocument) {
         Elements allTables = htmlDocument.select("table");
         if (allTables.isEmpty()) {
-            return Collections.emptyList();
+            return Map.of("tables", Collections.emptyList());
         }
 
-        List<List<Map<String, Object>>> allTablesList = new ArrayList<>();
+        List<Map<String, List<Map<String, Object>>>> wrappedTablesList = new ArrayList<>();
 
         for (Element table : allTables) {
             Elements rows = table.select("tr");
@@ -106,10 +105,11 @@ public class ScrapperServiceImpl implements ScrapperService {
                 }
                 tableRows.add(rowObject);
             }
-            allTablesList.add(tableRows);
+
+            wrappedTablesList.add(Map.of("table", tableRows));
         }
 
-        return allTablesList;
+        return Map.of("tables", wrappedTablesList);
     }
 
     private String extractText(Document htmlDocument) {
