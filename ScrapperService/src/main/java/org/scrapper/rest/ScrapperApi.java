@@ -22,14 +22,9 @@ public class ScrapperApi {
         this.scrapperService = scrapperService;
     }
 
-    @GetMapping("/scrape")
-    public ResponseEntity<Object> scrape(@Valid ScrapeRequestDto requestDto) {
-        return ResponseEntity.ok(scrapperService.scrape(
-                requestDto.url(),
-                requestDto.timeoutSeconds(),
-                requestDto.userAgent(),
-                requestDto.strategy()
-        ));
+    @PostMapping("/scrape")
+    public Object scrape(@Valid @RequestBody ScrapeRequestDto dto) {
+        return scrapperService.scrape(dto.url(), dto.timeoutSeconds(), dto.userAgent(), dto.strategy());
     }
 
     @GetMapping("/strategies")
