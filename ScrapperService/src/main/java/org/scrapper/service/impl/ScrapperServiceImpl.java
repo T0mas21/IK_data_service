@@ -1,4 +1,5 @@
 package org.scrapper.service.impl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -24,7 +25,8 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
 
         if (strategy == ScrapperStrategy.EXTRACT_TABLES) {
-            return getTable(htmlDocument);
+            List<List<Map<String, Object>>> tables = getTable(htmlDocument);
+            return Map.of("tables", tables);
         } else if (strategy == ScrapperStrategy.EXTRACT_TEXT) {
             String textResult = extractText(htmlDocument);
             return Map.of("text", textResult);
@@ -33,7 +35,7 @@ public class ScrapperServiceImpl implements ScrapperService {
             return Map.of("files", filesResult);
         } else if (strategy == null) {
             String textResult = extractText(htmlDocument);
-            Object tablesResult = getTable(htmlDocument);
+            List<List<Map<String, Object>>> tablesResult = getTable(htmlDocument);
             List<Map<String, String>> filesResult = extractDownloadLinks(htmlDocument);
 
             return Map.of(
@@ -59,41 +61,30 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
     }
 
-    private Map<String, List<Map<String, Object>>> getTable(Document htmlDocument) {
+    public List<List<Map<String, Object>>> getTable(Document htmlDocument) {
         Elements allTables = htmlDocument.select("table");
         if (allTables.isEmpty()) {
-            System.out.println("Na stránce nebyla nalezena žádná tabulka.");
-            return Collections.emptyMap();
+            return Collections.emptyList();
         }
 
-        Map<String, List<Map<String, Object>>> parsedDocument = new LinkedHashMap<>();
+        List<List<Map<String, Object>>> allTablesList = new ArrayList<>();
 
-        for (int tableIndex = 0; tableIndex < allTables.size(); tableIndex++) {
-            Element table = allTables.get(tableIndex);
-            String tableId = "table_" + (tableIndex + 1);
-            List<Map<String, Object>> tableRows = new ArrayList<>();
-
+        for (Element table : allTables) {
             Elements rows = table.select("tr");
-            if (rows.isEmpty()) {
-                continue;
-            }
+            if (rows.isEmpty()) continue;
 
-            Element headerRow = rows.get(0);
-            Elements headerCells = headerRow.select("th, td");
+            Elements headerCells = rows.get(0).select("th, td");
             List<String> headers = new ArrayList<>();
-
             for (int i = 0; i < headerCells.size(); i++) {
                 String text = headerCells.get(i).text().trim();
                 headers.add(text.isEmpty() ? "column_" + (i + 1) : text);
             }
 
-            for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
-                Element row = rows.get(rowIndex);
-                Elements cells = row.select("td");
+            List<Map<String, Object>> tableRows = new ArrayList<>();
 
-                if (cells.size() != headers.size()) {
-                    continue;
-                }
+            for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
+                Elements cells = rows.get(rowIndex).select("td");
+                if (cells.size() != headers.size()) continue;
 
                 Map<String, Object> rowObject = new LinkedHashMap<>();
 
@@ -104,25 +95,21 @@ public class ScrapperServiceImpl implements ScrapperService {
 
                     Element link = cell.selectFirst("a");
                     if (link != null && link.hasAttr("href")) {
-                        String rawHref = link.attr("href");
-
-                        Map<String, String> linkData = new HashMap<>();
+                        Map<String, String> linkData = new LinkedHashMap<>();
                         linkData.put("name", cellValue);
-                        linkData.put("url", rawHref);
+                        linkData.put("url", link.attr("abs:href"));
 
                         rowObject.put(columnName, List.of(linkData));
                     } else {
                         rowObject.put(columnName, cellValue);
                     }
                 }
-
                 tableRows.add(rowObject);
             }
-
-            parsedDocument.put(tableId, tableRows);
+            allTablesList.add(tableRows);
         }
 
-        return parsedDocument;
+        return allTablesList;
     }
 
     private String extractText(Document htmlDocument) {
