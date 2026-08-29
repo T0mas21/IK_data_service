@@ -82,17 +82,18 @@ public class ScrapperServiceImpl implements ScrapperService {
             Map<String, Object> tableData = new LinkedHashMap<>();
             tableData.put("columns", headers);
 
-            List<List<Object>> allRowsValues = new ArrayList<>();
+            List<Map<String, Object>> tableRows = new ArrayList<>();
 
             for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
                 Elements cells = rows.get(rowIndex).select("td");
                 if (cells.size() != headers.size()) continue;
 
-                List<Object> rowValues = new ArrayList<>();
+                Map<String, Object> rowMap = new LinkedHashMap<>();
 
                 for (int i = 0; i < headers.size(); i++) {
                     Element cell = cells.get(i);
                     String cellValue = cell.text().trim();
+                    String columnName = headers.get(i);
 
                     Element link = cell.selectFirst("a");
                     if (link != null && link.hasAttr("href")) {
@@ -100,16 +101,16 @@ public class ScrapperServiceImpl implements ScrapperService {
                         linkData.put("name", cellValue);
                         linkData.put("url", link.attr("abs:href"));
 
-                        rowValues.add(List.of(linkData));
+                        rowMap.put(columnName, List.of(linkData));
                     } else {
-                        rowValues.add(cellValue);
+                        rowMap.put(columnName, cellValue);
                     }
                 }
 
-                allRowsValues.add(rowValues);
+                tableRows.add(rowMap);
             }
 
-            tableData.put("row", allRowsValues);
+            tableData.put("row", tableRows);
             wrappedTablesList.add(Map.of("table", tableData));
         }
 
