@@ -82,7 +82,7 @@ public class ScrapperServiceImpl implements ScrapperService {
             Map<String, Object> tableData = new LinkedHashMap<>();
             tableData.put("columns", headers);
 
-            List<Map<String, List<Object>>> tableRows = new ArrayList<>();
+            List<List<Object>> allRowsValues = new ArrayList<>();
 
             for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
                 Elements cells = rows.get(rowIndex).select("td");
@@ -106,10 +106,10 @@ public class ScrapperServiceImpl implements ScrapperService {
                     }
                 }
 
-                tableRows.add(Map.of("row", rowValues));
+                allRowsValues.add(rowValues);
             }
 
-            tableData.put("row", tableRows);
+            tableData.put("row", allRowsValues);
             wrappedTablesList.add(Map.of("table", tableData));
         }
 
