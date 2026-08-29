@@ -109,7 +109,7 @@ public class ScrapperServiceImpl implements ScrapperService {
                 tableRows.add(Map.of("row", rowValues));
             }
 
-            tableData.put("rows", tableRows);
+            tableData.put("row", tableRows);
             wrappedTablesList.add(Map.of("table", tableData));
         }
 
