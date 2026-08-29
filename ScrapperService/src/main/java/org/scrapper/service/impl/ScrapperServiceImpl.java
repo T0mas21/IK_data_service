@@ -60,13 +60,13 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
     }
 
-    public Map<String, List<Map<String, Map<String, Object>>>> getTable(Document htmlDocument) {
+    public Map<String, List<Map<String, Object>>> getTable(Document htmlDocument) {
         Elements allTables = htmlDocument.select("table");
         if (allTables.isEmpty()) {
             return Map.of("tables", Collections.emptyList());
         }
 
-        List<Map<String, Map<String, Object>>> wrappedTablesList = new ArrayList<>();
+        List<Map<String, Object>> wrappedTablesList = new ArrayList<>();
 
         for (Element table : allTables) {
             Elements rows = table.select("tr");
@@ -79,10 +79,11 @@ public class ScrapperServiceImpl implements ScrapperService {
                 headers.add(text.isEmpty() ? "column_" + (i + 1) : text);
             }
 
-            Map<String, Object> tableContent = new LinkedHashMap<>();
-            tableContent.put("columns", headers);
+            Map<String, Object> tableData = new LinkedHashMap<>();
+            tableData.put("columns", headers);
 
-            int validRowCounter = 1;
+            List<Map<String, List<Object>>> tableRows = new ArrayList<>();
+
             for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
                 Elements cells = rows.get(rowIndex).select("td");
                 if (cells.size() != headers.size()) continue;
@@ -105,11 +106,11 @@ public class ScrapperServiceImpl implements ScrapperService {
                     }
                 }
 
-                tableContent.put("row" + validRowCounter, rowValues);
-                validRowCounter++;
+                tableRows.add(Map.of("row", rowValues));
             }
 
-            wrappedTablesList.add(Map.of("table", tableContent));
+            tableData.put("rows", tableRows);
+            wrappedTablesList.add(Map.of("table", tableData));
         }
 
         return Map.of("tables", wrappedTablesList);
