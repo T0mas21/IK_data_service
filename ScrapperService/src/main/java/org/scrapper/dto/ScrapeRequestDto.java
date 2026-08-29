@@ -1,5 +1,7 @@
 package org.scrapper.dto;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,5 +19,6 @@ public record ScrapeRequestDto(
         @NotBlank(message = "User-Agent nesmí být prázdný")
         String userAgent,
 
+        @JsonSetter(nulls = Nulls.AS_EMPTY)
         ScrapperStrategy strategy
 ) {}

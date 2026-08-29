@@ -1,5 +1,5 @@
 package org.scrapper.service.impl;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -60,13 +60,13 @@ public class ScrapperServiceImpl implements ScrapperService {
         }
     }
 
-    public Map<String, List<Map<String, List<Map<String, Map<String, Object>>>>>> getTable(Document htmlDocument) {
+    public Map<String, List<Map<String, Map<String, Object>>>> getTable(Document htmlDocument) {
         Elements allTables = htmlDocument.select("table");
         if (allTables.isEmpty()) {
             return Map.of("tables", Collections.emptyList());
         }
 
-        List<Map<String, List<Map<String, Map<String, Object>>>>> wrappedTablesList = new ArrayList<>();
+        List<Map<String, Map<String, Object>>> wrappedTablesList = new ArrayList<>();
 
         for (Element table : allTables) {
             Elements rows = table.select("tr");
@@ -79,16 +79,17 @@ public class ScrapperServiceImpl implements ScrapperService {
                 headers.add(text.isEmpty() ? "column_" + (i + 1) : text);
             }
 
-            List<Map<String, Map<String, Object>>> tableRows = new ArrayList<>();
+            Map<String, Object> tableContent = new LinkedHashMap<>();
+            tableContent.put("columns", headers);
 
+            int validRowCounter = 1;
             for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
                 Elements cells = rows.get(rowIndex).select("td");
                 if (cells.size() != headers.size()) continue;
 
-                Map<String, Object> rowObject = new LinkedHashMap<>();
+                List<Object> rowValues = new ArrayList<>();
 
                 for (int i = 0; i < headers.size(); i++) {
-                    String columnName = headers.get(i);
                     Element cell = cells.get(i);
                     String cellValue = cell.text().trim();
 
@@ -98,16 +99,17 @@ public class ScrapperServiceImpl implements ScrapperService {
                         linkData.put("name", cellValue);
                         linkData.put("url", link.attr("abs:href"));
 
-                        rowObject.put(columnName, List.of(linkData));
+                        rowValues.add(List.of(linkData));
                     } else {
-                        rowObject.put(columnName, cellValue);
+                        rowValues.add(cellValue);
                     }
                 }
 
-                tableRows.add(Map.of("row", rowObject));
+                tableContent.put("row" + validRowCounter, rowValues);
+                validRowCounter++;
             }
 
-            wrappedTablesList.add(Map.of("table", tableRows));
+            wrappedTablesList.add(Map.of("table", tableContent));
         }
 
         return Map.of("tables", wrappedTablesList);
