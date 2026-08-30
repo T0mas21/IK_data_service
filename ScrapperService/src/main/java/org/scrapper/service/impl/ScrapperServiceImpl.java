@@ -73,18 +73,19 @@ public class ScrapperServiceImpl implements ScrapperService {
 
             Elements headerCells = rows.get(0).select("th, td");
             List<String> headersList = new ArrayList<>();
-            Map<String, String> columnsMap = new LinkedHashMap<>();
+
+            List<Map<String, String>> columnsList = new ArrayList<>();
 
             for (int i = 0; i < headerCells.size(); i++) {
                 String text = headerCells.get(i).text().trim();
                 String headerName = text.isEmpty() ? "column_" + (i + 1) : text;
                 headersList.add(headerName);
 
-                columnsMap.put(String.valueOf(i + 1), headerName);
+                columnsList.add(Map.of(String.valueOf(i + 1), headerName));
             }
 
             Map<String, Object> tableData = new LinkedHashMap<>();
-            tableData.put("columns", columnsMap);
+            tableData.put("columns", columnsList);
 
             List<Map<String, Object>> tableRows = new ArrayList<>();
 
