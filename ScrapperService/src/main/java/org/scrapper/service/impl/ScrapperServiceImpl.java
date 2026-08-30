@@ -54,7 +54,6 @@ public class ScrapperServiceImpl implements ScrapperService {
                     .timeout(timeoutMillis)
                     .get();
         } catch (Exception e) {
-            // TODO - add exception handler
             System.err.println("Error downloading raw content: " + e.getMessage());
             return null;
         }
@@ -73,27 +72,32 @@ public class ScrapperServiceImpl implements ScrapperService {
             if (rows.isEmpty()) continue;
 
             Elements headerCells = rows.get(0).select("th, td");
-            List<String> headers = new ArrayList<>();
+            List<String> headersList = new ArrayList<>();
+            Map<String, String> columnsMap = new LinkedHashMap<>();
+
             for (int i = 0; i < headerCells.size(); i++) {
                 String text = headerCells.get(i).text().trim();
-                headers.add(text.isEmpty() ? "column_" + (i + 1) : text);
+                String headerName = text.isEmpty() ? "column_" + (i + 1) : text;
+                headersList.add(headerName);
+
+                columnsMap.put(String.valueOf(i + 1), headerName);
             }
 
             Map<String, Object> tableData = new LinkedHashMap<>();
-            tableData.put("columns", headers);
+            tableData.put("columns", columnsMap);
 
             List<Map<String, Object>> tableRows = new ArrayList<>();
 
             for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
                 Elements cells = rows.get(rowIndex).select("td");
-                if (cells.size() != headers.size()) continue;
+                if (cells.size() != headersList.size()) continue;
 
                 Map<String, Object> rowMap = new LinkedHashMap<>();
 
-                for (int i = 0; i < headers.size(); i++) {
+                for (int i = 0; i < headersList.size(); i++) {
                     Element cell = cells.get(i);
                     String cellValue = cell.text().trim();
-                    String columnName = headers.get(i);
+                    String columnName = headersList.get(i);
 
                     Element link = cell.selectFirst("a");
                     if (link != null && link.hasAttr("href")) {
