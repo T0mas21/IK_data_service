@@ -124,18 +124,52 @@ public class ScrapperServiceImpl implements ScrapperService {
 
     private String extractText(Document htmlDocument) {
         Document docCopy = htmlDocument.clone();
-        docCopy.select("script, style, nav, header, footer, form, aside").remove();
 
-        String text = docCopy.text();
+        docCopy.select("script, style, noscript, nav, header, footer, form, aside, " +
+                "button, input, select, textarea, option, " +
+                "[role=button], [role=navigation], [role=menu], [role=banner], " +
+                "[aria-hidden=true], .hidden, [style*='display:none'], [style*='visibility:hidden']").remove();
+
+        Elements candidates = docCopy.select("main, article, [role=main], .main, #main, .content, #content");
+        Element mainContainer = candidates.isEmpty() ? docCopy.body() : candidates.first();
+
+        if (mainContainer == null) {
+            return "";
+        }
+
         StringBuilder cleanText = new StringBuilder();
-        for (String line : text.split("\\r?\\n")) {
-            String trimmed = line.trim();
-            if (!trimmed.isEmpty()) {
-                cleanText.append(trimmed).append("\n");
+        Elements textBlocks = mainContainer.select("p, h1, h2, h3, h4, h5, h6, li, blockquote, dt, dd, section");
+
+        for (Element block : textBlocks) {
+            if (!block.select("p, h1, h2, h3, h4, h5, h6, li").isEmpty() && !block.tagName().equals("li")) {
+                continue;
+            }
+
+            String text = block.text().trim();
+
+            if (isValidContentLine(text)) {
+                cleanText.append(text).append("\n");
+            }
+        }
+
+        if (cleanText.length() == 0) {
+            for (String line : mainContainer.text().split("\\r?\\n")) {
+                String trimmed = line.trim();
+                if (isValidContentLine(trimmed)) {
+                    cleanText.append(trimmed).append("\n");
+                }
             }
         }
 
         return cleanText.toString().trim();
+    }
+
+    private boolean isValidContentLine(String text) {
+        if (text.isEmpty()) return false;
+
+        if (text.length() < 5 && !text.contains(" ")) return false;
+
+        return true;
     }
 
     private List<Map<String, String>> extractDownloadLinks(Document htmlDocument) {
