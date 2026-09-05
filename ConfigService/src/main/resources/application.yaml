@@ -14,3 +14,12 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+supabase:
+  url: ${SUPABASE_URL:}
+  key: ${SUPABASE_KEY:}
+  bucket: ${BUCKET_NAME:config-files}

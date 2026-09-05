@@ -4,11 +4,13 @@ import jakarta.validation.Valid;
 import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNamesDto;
+import org.config.dto.FileDto;
 import org.config.facade.ConfigFacade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -55,6 +57,19 @@ public class ConfigApi {
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteByName(@PathVariable String name) {
         configFacade.deleteByName(name);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{configId}/files")
+    public ResponseEntity<FileDto> uploadFile(@PathVariable Long configId,
+                                               @RequestParam("file") MultipartFile file) {
+        FileDto uploaded = configFacade.uploadFile(configId, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(uploaded);
+    }
+
+    @DeleteMapping("/{configId}/files/{fileId}")
+    public ResponseEntity<Void> deleteFile(@PathVariable Long configId, @PathVariable Long fileId) {
+        configFacade.deleteFile(configId, fileId);
         return ResponseEntity.noContent().build();
     }
 }

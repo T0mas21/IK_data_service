@@ -4,6 +4,8 @@ import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -16,7 +18,8 @@ class ConfigFacadeCreateTest extends BaseConfigFacadeTest {
                 "Popis konfigurace",
                 5000,
                 "Mozilla/5.0",
-                "https://example.com"
+                "https://example.com",
+                List.of()
         );
 
         Config entity = new Config();
@@ -39,7 +42,8 @@ class ConfigFacadeCreateTest extends BaseConfigFacadeTest {
                 "Popis konfigurace",
                 5000,
                 "Mozilla/5.0",
-                "https://example.com"
+                "https://example.com",
+                List.of()
         );
 
         when(configMapper.toEntity(inputDto)).thenReturn(entity);

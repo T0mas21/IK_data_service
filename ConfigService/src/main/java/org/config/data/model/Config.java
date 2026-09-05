@@ -5,6 +5,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "configs")
@@ -29,23 +31,43 @@ public class Config {
     @Column(length = 500)
     private String url;
 
+    @Lob
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
+
+    @OneToMany(mappedBy = "config", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<File> files = new ArrayList<>();
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+
     public Config() {}
 
-    public Config(Long id, String name, String description, Integer timeout, String userAgent, String url, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Config(Long id, String name, String description, Integer timeout, String userAgent,
+                  String url, String content, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.timeout = timeout;
         this.userAgent = userAgent;
         this.url = url;
+        this.content = content;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public void addFile(File file) {
+        files.add(file);
+        file.setConfig(this);
+    }
+
+    public void removeFile(File file) {
+        files.remove(file);
+        file.setConfig(null);
     }
 
     public Long getId() {
@@ -94,6 +116,22 @@ public class Config {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public List<File> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<File> files) {
+        this.files = files;
     }
 
     public LocalDateTime getCreatedAt() {

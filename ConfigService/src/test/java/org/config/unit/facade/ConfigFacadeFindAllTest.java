@@ -44,8 +44,8 @@ class ConfigFacadeFindAllTest extends BaseConfigFacadeTest {
         entity2.setUserAgent("Agent 2");
         entity2.setUrl("https://example2.com");
 
-        ConfigDto dto1 = new ConfigDto("config1", "Popis 1", 1000, "Agent 1", "https://example1.com");
-        ConfigDto dto2 = new ConfigDto("config2", "Popis 2", 2000, "Agent 2", "https://example2.com");
+        ConfigDto dto1 = new ConfigDto("config1", "Popis 1", 1000, "Agent 1", "https://example1.com", List.of());
+        ConfigDto dto2 = new ConfigDto("config2", "Popis 2", 2000, "Agent 2", "https://example2.com", List.of());
 
         when(configService.findAll()).thenReturn(List.of(entity1, entity2));
         when(configMapper.toDto(entity1)).thenReturn(dto1);

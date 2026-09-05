@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -17,7 +19,8 @@ class ConfigApiCreateTest extends BaseConfigApiTest {
                 "Aplikacni nastaveni",
                 5000,
                 "Mozilla/5.0",
-                "https://example.com"
+                "https://example.com",
+                List.of()
         );
 
         ConfigDto createdDto = new ConfigDto(
@@ -25,7 +28,8 @@ class ConfigApiCreateTest extends BaseConfigApiTest {
                 "Aplikacni nastaveni",
                 5000,
                 "Mozilla/5.0",
-                "https://example.com"
+                "https://example.com",
+                List.of()
         );
 
         when(configFacade.createConfig(inputDto)).thenReturn(createdDto);

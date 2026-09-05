@@ -4,6 +4,8 @@ import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -24,7 +26,8 @@ class ConfigFacadeFindByNameTest extends BaseConfigFacadeTest {
                 "Popis konfigurace",
                 3000,
                 "Mozilla/5.0",
-                "https://example.com"
+                "https://example.com",
+                List.of()
         );
 
         when(configService.findByName(name)).thenReturn(entity);

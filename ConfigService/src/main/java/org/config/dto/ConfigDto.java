@@ -3,6 +3,8 @@ package org.config.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.List;
+
 public record ConfigDto(
         @NotBlank(message = "Jméno konfigurace nesmí být prázdné")
         String name,
@@ -14,5 +16,7 @@ public record ConfigDto(
 
         String userAgent,
 
-        String url
+        String url,
+
+        List<FileDto> files
 ) {}

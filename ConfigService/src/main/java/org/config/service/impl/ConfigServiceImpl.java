@@ -3,24 +3,35 @@ package org.config.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.config.data.model.Config;
+import org.config.data.model.File;
 import org.config.data.repository.ConfigRepository;
+import org.config.data.repository.FileRepository;
 import org.config.service.ConfigService;
+import org.config.service.storage.SupabaseStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ConfigServiceImpl implements ConfigService {
 
     private final ConfigRepository configRepository;
+    private final FileRepository fileRepository;
+    private final SupabaseStorageService supabaseStorageService;
 
     @Autowired
-    public ConfigServiceImpl(ConfigRepository configRepository) {
+    public ConfigServiceImpl(ConfigRepository configRepository, FileRepository fileRepository,
+                              SupabaseStorageService supabaseStorageService) {
         this.configRepository = configRepository;
+        this.fileRepository = fileRepository;
+        this.supabaseStorageService = supabaseStorageService;
     }
 
     @Override
@@ -102,5 +113,59 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
         this.configRepository.deleteByName(name);
+    }
+
+    @Override
+    @Transactional
+    public File addFileToConfig(Long configId, MultipartFile multipartFile) {
+        if (multipartFile == null || multipartFile.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nahrávaný soubor nesmí být prázdný.");
+        }
+
+        Config config = configRepository.findByIdWithFiles(configId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Konfigurace s id " + configId + " nebyla nalezena."
+                ));
+
+        String originalFileName = multipartFile.getOriginalFilename();
+        String storagePath = "configs/" + configId + "/" + UUID.randomUUID() + "_" + originalFileName;
+
+        byte[] content;
+        try {
+            content = multipartFile.getBytes();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Nahrávaný soubor se nepodařilo přečíst.", e);
+        }
+
+        supabaseStorageService.uploadFile(storagePath, content, multipartFile.getContentType());
+
+        File file = new File(config, storagePath, originalFileName, multipartFile.getContentType());
+        config.addFile(file);
+
+        return fileRepository.save(file);
+    }
+
+    @Override
+    @Transactional
+    public void removeFileFromConfig(Long configId, Long fileId) {
+        Config config = configRepository.findByIdWithFiles(configId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Konfigurace s id " + configId + " nebyla nalezena."
+                ));
+
+        File file = config.getFiles().stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Soubor s id " + fileId + " nebyl u této konfigurace nalezen."
+                ));
+
+        supabaseStorageService.deleteFile(file.getStoragePath());
+
+        config.removeFile(file);
+        fileRepository.delete(file);
     }
 }

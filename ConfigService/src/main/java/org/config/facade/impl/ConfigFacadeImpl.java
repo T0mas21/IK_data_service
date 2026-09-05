@@ -1,14 +1,18 @@
 package org.config.facade.impl;
 
 import org.config.data.model.Config;
+import org.config.data.model.File;
 import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNameItemDto;
 import org.config.dto.ConfigNamesDto;
+import org.config.dto.FileDto;
 import org.config.facade.ConfigFacade;
 import org.config.mappers.ConfigMapper;
+import org.config.mappers.FileMapper;
 import org.config.service.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,11 +21,13 @@ public class ConfigFacadeImpl implements ConfigFacade {
 
     private final ConfigService configService;
     private final ConfigMapper configMapper;
+    private final FileMapper fileMapper;
 
     @Autowired
-    public ConfigFacadeImpl(ConfigService configService, ConfigMapper configMapper) {
+    public ConfigFacadeImpl(ConfigService configService, ConfigMapper configMapper, FileMapper fileMapper) {
         this.configService = configService;
         this.configMapper = configMapper;
+        this.fileMapper = fileMapper;
     }
 
     @Override
@@ -63,5 +69,17 @@ public class ConfigFacadeImpl implements ConfigFacade {
     @Override
     public void deleteByName(String name) {
         configService.deleteByName(name);
+    }
+
+
+    @Override
+    public FileDto uploadFile(Long configId, MultipartFile multipartFile) {
+        File savedFile = configService.addFileToConfig(configId, multipartFile);
+        return fileMapper.toDto(savedFile);
+    }
+
+    @Override
+    public void deleteFile(Long configId, Long fileId) {
+        configService.removeFileFromConfig(configId, fileId);
     }
 }
