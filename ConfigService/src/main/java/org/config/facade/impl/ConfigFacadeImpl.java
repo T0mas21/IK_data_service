@@ -60,6 +60,7 @@ public class ConfigFacadeImpl implements ConfigFacade {
                 createdDto.timeout(),
                 createdDto.userAgent(),
                 createdDto.url(),
+                createdDto.content(),
                 uploadedFiles
         );
     }

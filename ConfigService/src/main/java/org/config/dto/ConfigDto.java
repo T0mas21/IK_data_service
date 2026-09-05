@@ -18,5 +18,7 @@ public record ConfigDto(
 
         String url,
 
+        String content,
+
         List<FileDto> files
 ) {}

@@ -99,6 +99,7 @@ public class ConfigServiceImpl implements ConfigService {
         existingConfig.setTimeout(updatedConfig.getTimeout());
         existingConfig.setUserAgent(updatedConfig.getUserAgent());
         existingConfig.setUrl(updatedConfig.getUrl());
+        existingConfig.setContent(updatedConfig.getContent());
 
         return existingConfig;
     }

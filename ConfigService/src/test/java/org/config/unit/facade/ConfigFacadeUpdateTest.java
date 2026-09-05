@@ -21,6 +21,7 @@ class ConfigFacadeUpdateTest extends BaseConfigFacadeTest {
                 5000,
                 "Mozilla/5.0",
                 "https://example.com",
+                null,
                 List.of()
         );
 
