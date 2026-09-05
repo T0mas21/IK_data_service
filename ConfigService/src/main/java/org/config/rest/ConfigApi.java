@@ -27,9 +27,22 @@ public class ConfigApi {
         this.configFacade = configFacade;
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ConfigDto> createConfig(@Valid @RequestBody ConfigDto configDto) {
         ConfigDto created = configFacade.createConfig(configDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ConfigDto> createConfigWithFiles(
+            @RequestParam String name,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) Integer timeout,
+            @RequestParam(required = false) String userAgent,
+            @RequestParam(required = false) String url,
+            @RequestParam(required = false) List<MultipartFile> files) {
+        ConfigDto configDto = new ConfigDto(name, description, timeout, userAgent, url, List.of());
+        ConfigDto created = configFacade.createConfig(configDto, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

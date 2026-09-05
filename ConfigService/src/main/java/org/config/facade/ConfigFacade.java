@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface ConfigFacade {
     ConfigDto createConfig(ConfigDto configDto);
+    ConfigDto createConfig(ConfigDto configDto, List<MultipartFile> files);
     ConfigDto findByName(String name);
     ConfigNamesDto findAllNames();
     List<ConfigDto> findAll();

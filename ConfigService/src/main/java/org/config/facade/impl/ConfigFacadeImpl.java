@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -35,6 +36,32 @@ public class ConfigFacadeImpl implements ConfigFacade {
         Config entity = configMapper.toEntity(configDto);
         Config savedEntity = configService.createConfig(entity);
         return configMapper.toDto(savedEntity);
+    }
+
+    @Override
+    public ConfigDto createConfig(ConfigDto configDto, List<MultipartFile> files) {
+        Config entity = configMapper.toEntity(configDto);
+        Config savedEntity = configService.createConfig(entity);
+
+        List<FileDto> uploadedFiles = new ArrayList<>();
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file != null && !file.isEmpty()) {
+                    File savedFile = configService.addFileToConfig(savedEntity.getId(), file);
+                    uploadedFiles.add(fileMapper.toDto(savedFile));
+                }
+            }
+        }
+
+        ConfigDto createdDto = configMapper.toDto(savedEntity);
+        return new ConfigDto(
+                createdDto.name(),
+                createdDto.description(),
+                createdDto.timeout(),
+                createdDto.userAgent(),
+                createdDto.url(),
+                uploadedFiles
+        );
     }
 
     @Override
