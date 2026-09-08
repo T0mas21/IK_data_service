@@ -23,3 +23,9 @@ supabase:
   url: ${SUPABASE_URL:}
   key: ${SUPABASE_KEY:}
   bucket: ${BUCKET_NAME:config-files}
+
+scrapper-service:
+  url: ${SCRAPPER_SERVICE_URL:http://scrapper-service:8082}
+
+vector-service:
+  url: ${VECTOR_SERVICE_URL:http://vector-service:8083}

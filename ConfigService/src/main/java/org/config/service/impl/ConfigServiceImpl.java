@@ -2,6 +2,8 @@ package org.config.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
+import org.config.client.ScrapperServiceClient;
+import org.config.client.VectorServiceClient;
 import org.config.data.model.Config;
 import org.config.data.model.File;
 import org.config.data.repository.ConfigRepository;
@@ -25,13 +27,19 @@ public class ConfigServiceImpl implements ConfigService {
     private final ConfigRepository configRepository;
     private final FileRepository fileRepository;
     private final SupabaseStorageService supabaseStorageService;
+    private final ScrapperServiceClient scrapperServiceClient;
+    private final VectorServiceClient vectorServiceClient;
 
     @Autowired
     public ConfigServiceImpl(ConfigRepository configRepository, FileRepository fileRepository,
-                              SupabaseStorageService supabaseStorageService) {
+                              SupabaseStorageService supabaseStorageService,
+                              ScrapperServiceClient scrapperServiceClient,
+                              VectorServiceClient vectorServiceClient) {
         this.configRepository = configRepository;
         this.fileRepository = fileRepository;
         this.supabaseStorageService = supabaseStorageService;
+        this.scrapperServiceClient = scrapperServiceClient;
+        this.vectorServiceClient = vectorServiceClient;
     }
 
     @Override
@@ -57,7 +65,9 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
 
-        return this.configRepository.save(newConfig);
+        Config savedConfig = this.configRepository.save(newConfig);
+        reindexConfig(savedConfig);
+        return savedConfig;
     }
 
     @Override
@@ -101,19 +111,20 @@ public class ConfigServiceImpl implements ConfigService {
         existingConfig.setUrl(updatedConfig.getUrl());
         existingConfig.setContent(updatedConfig.getContent());
 
+        reindexConfig(existingConfig);
         return existingConfig;
     }
 
     @Override
     @Transactional
     public void deleteByName(String name) {
-        if (configRepository.findByName(name).isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Konfigurační soubor '" + name + "' neexistuje."
-            );
-        }
+        Config existingConfig = configRepository.findByName(name)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Konfigurační soubor '" + name + "' neexistuje."
+                ));
         this.configRepository.deleteByName(name);
+        vectorServiceClient.deleteConfig(existingConfig.getId());
     }
 
     @Override
@@ -144,7 +155,9 @@ public class ConfigServiceImpl implements ConfigService {
         File file = new File(config, storagePath, originalFileName, multipartFile.getContentType());
         config.addFile(file);
 
-        return fileRepository.save(file);
+        File savedFile = fileRepository.save(file);
+        reindexConfig(config);
+        return savedFile;
     }
 
     @Override
@@ -168,5 +181,16 @@ public class ConfigServiceImpl implements ConfigService {
 
         config.removeFile(file);
         fileRepository.delete(file);
+        reindexConfig(config);
+    }
+
+    /**
+     * Best-effort přeindexování configu ve Vector službě: naskrapuje aktuální url (pokud je vyplněná)
+     * a spolu s custom textem a aktuálním seznamem souborů pošle k zaindexování. Chyby se pouze logují
+     * (viz {@link ScrapperServiceClient} a {@link VectorServiceClient}) a nesmí shodit operaci nad configem.
+     */
+    private void reindexConfig(Config config) {
+        String scrapedText = scrapperServiceClient.scrapeText(config.getUrl(), config.getTimeout(), config.getUserAgent());
+        vectorServiceClient.indexConfig(config.getId(), config.getContent(), scrapedText, config.getFiles());
     }
 }
