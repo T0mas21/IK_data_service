@@ -3,6 +3,9 @@ package org.config.facade;
 import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.dto.FileDto;
+import org.config.dto.UploadUrlDto;
+import org.config.dto.UploadUrlRequestDto;
+import org.config.dto.RegisterFileDto;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -18,4 +21,7 @@ public interface ConfigFacade {
 
     FileDto uploadFile(Long configId, MultipartFile file);
     void deleteFile(Long configId, Long fileId);
+
+    UploadUrlDto createUploadUrl(Long configId, UploadUrlRequestDto request);
+    FileDto registerFile(Long configId, RegisterFileDto request);
 }

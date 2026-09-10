@@ -19,6 +19,7 @@
     <modules>
         <module>ScrapperService</module>
         <module>ConfigService</module>
+        <module>VectorService</module>
     </modules>
 
     <properties>

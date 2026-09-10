@@ -5,6 +5,9 @@ import org.config.data.model.Config;
 import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.dto.FileDto;
+import org.config.dto.RegisterFileDto;
+import org.config.dto.UploadUrlDto;
+import org.config.dto.UploadUrlRequestDto;
 import org.config.facade.ConfigFacade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,9 +43,9 @@ public class ConfigApi {
             @RequestParam(required = false) Integer timeout,
             @RequestParam(required = false) String userAgent,
             @RequestParam(required = false) String url,
-            @RequestParam(required = false) String content,
+            @RequestParam(required = false) String customText,
             @RequestParam(required = false) List<MultipartFile> files) {
-        ConfigDto configDto = new ConfigDto(name, description, timeout, userAgent, url, content, List.of());
+        ConfigDto configDto = new ConfigDto(name, description, timeout, userAgent, url, customText, List.of());
         ConfigDto created = configFacade.createConfig(configDto, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -86,5 +89,26 @@ public class ConfigApi {
     public ResponseEntity<Void> deleteFile(@PathVariable Long configId, @PathVariable Long fileId) {
         configFacade.deleteFile(configId, fileId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Vrátí signed upload URL pro nahrání souboru přímo do Supabase Storage — bajty souboru
+     * touto aplikací neprochází. Po úspěšném nahrání zavolej {@link #registerFile}.
+     */
+    @PostMapping(value = "/{configId}/files/upload-url", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UploadUrlDto> createUploadUrl(@PathVariable Long configId,
+                                                          @Valid @RequestBody UploadUrlRequestDto request) {
+        return ResponseEntity.ok(configFacade.createUploadUrl(configId, request));
+    }
+
+    /**
+     * Zaregistruje soubor, který už byl nahrán přímo do Supabase Storage přes signed upload URL
+     * (viz {@link #createUploadUrl}).
+     */
+    @PostMapping(value = "/{configId}/files/register", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<FileDto> registerFile(@PathVariable Long configId,
+                                                 @Valid @RequestBody RegisterFileDto request) {
+        FileDto registered = configFacade.registerFile(configId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(registered);
     }
 }

@@ -8,6 +8,7 @@ import org.config.data.model.Config;
 import org.config.data.model.File;
 import org.config.data.repository.ConfigRepository;
 import org.config.data.repository.FileRepository;
+import org.config.dto.UploadUrlDto;
 import org.config.service.ConfigService;
 import org.config.service.storage.SupabaseStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -182,6 +183,42 @@ public class ConfigServiceImpl implements ConfigService {
         config.removeFile(file);
         fileRepository.delete(file);
         reindexConfig(config);
+    }
+
+    @Override
+    public UploadUrlDto createUploadUrl(Long configId, String fileName, String fileType) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jméno souboru nesmí být prázdné.");
+        }
+
+        if (configRepository.findById(configId).isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Konfigurace s id " + configId + " nebyla nalezena."
+            );
+        }
+
+        String storagePath = "configs/" + configId + "/" + UUID.randomUUID() + "_" + fileName;
+        String uploadUrl = supabaseStorageService.createSignedUploadUrl(storagePath);
+
+        return new UploadUrlDto(storagePath, uploadUrl, fileName, fileType);
+    }
+
+    @Override
+    @Transactional
+    public File registerFile(Long configId, String storagePath, String fileName, String fileType) {
+        Config config = configRepository.findByIdWithFiles(configId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Konfigurace s id " + configId + " nebyla nalezena."
+                ));
+
+        File file = new File(config, storagePath, fileName, fileType);
+        config.addFile(file);
+
+        File savedFile = fileRepository.save(file);
+        reindexConfig(config);
+        return savedFile;
     }
 
     /**

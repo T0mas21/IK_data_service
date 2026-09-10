@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Service
 public class SupabaseStorageServiceImpl implements SupabaseStorageService {
@@ -70,9 +71,42 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         }
     }
 
+    @Override
+    public String createSignedUploadUrl(String storagePath) {
+        HttpHeaders headers = buildAuthHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(Map.of(), headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    signUploadUrl(storagePath), HttpMethod.POST, request, Map.class);
+
+            Object token = response.getBody() != null ? response.getBody().get("token") : null;
+            if (token == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Supabase Storage nevrátilo token pro signed upload URL."
+                );
+            }
+
+            return signUploadUrl(storagePath) + "?token=" + token;
+        } catch (HttpClientErrorException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Vytvoření signed upload URL v Supabase Storage selhalo: " + e.getResponseBodyAsString(),
+                    e
+            );
+        }
+    }
+
     private String objectUrl(String storagePath) {
         String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
         return supabaseUrl + "/storage/v1/object/" + bucket + "/" + encodedPath;
+    }
+
+    private String signUploadUrl(String storagePath) {
+        String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
+        return supabaseUrl + "/storage/v1/object/upload/sign/" + bucket + "/" + encodedPath;
     }
 
     private HttpHeaders buildAuthHeaders() {

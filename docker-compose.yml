@@ -14,3 +14,10 @@ services:
       dockerfile: ScrapperService/Dockerfile
     ports:
       - "8082:8082"
+
+  vector-service:
+    build:
+      context: .
+      dockerfile: VectorService/Dockerfile
+    ports:
+      - "8083:8083"

@@ -12,6 +12,10 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: SCRAPPER_SERVICE_URL
+        value: http://scrapper-service:10000
+      - key: VECTOR_SERVICE_URL
+        value: http://vector-service:10000
 
   - type: web
     name: scrapper-service
@@ -22,3 +26,23 @@ services:
     envVars:
       - key: CONFIG_SERVICE_URL
         value: http://config-service:10000
+
+  - type: web
+    name: vector-service
+    env: docker
+    dockerContext: .
+    dockerfilePath: VectorService/Dockerfile
+    plan: free
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: BUCKET_NAME
+        sync: false

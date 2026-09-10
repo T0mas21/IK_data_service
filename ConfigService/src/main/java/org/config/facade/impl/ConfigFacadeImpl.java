@@ -6,6 +6,9 @@ import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNameItemDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.dto.FileDto;
+import org.config.dto.RegisterFileDto;
+import org.config.dto.UploadUrlDto;
+import org.config.dto.UploadUrlRequestDto;
 import org.config.facade.ConfigFacade;
 import org.config.mappers.ConfigMapper;
 import org.config.mappers.FileMapper;
@@ -60,7 +63,7 @@ public class ConfigFacadeImpl implements ConfigFacade {
                 createdDto.timeout(),
                 createdDto.userAgent(),
                 createdDto.url(),
-                createdDto.content(),
+                createdDto.customText(),
                 uploadedFiles
         );
     }
@@ -109,5 +112,16 @@ public class ConfigFacadeImpl implements ConfigFacade {
     @Override
     public void deleteFile(Long configId, Long fileId) {
         configService.removeFileFromConfig(configId, fileId);
+    }
+
+    @Override
+    public UploadUrlDto createUploadUrl(Long configId, UploadUrlRequestDto request) {
+        return configService.createUploadUrl(configId, request.fileName(), request.fileType());
+    }
+
+    @Override
+    public FileDto registerFile(Long configId, RegisterFileDto request) {
+        File savedFile = configService.registerFile(configId, request.storagePath(), request.fileName(), request.fileType());
+        return fileMapper.toDto(savedFile);
     }
 }

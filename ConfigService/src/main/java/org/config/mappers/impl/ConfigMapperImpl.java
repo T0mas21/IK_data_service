@@ -55,7 +55,7 @@ public class ConfigMapperImpl implements ConfigMapper {
         config.setTimeout(configDto.timeout());
         config.setUserAgent(configDto.userAgent());
         config.setUrl(configDto.url());
-        config.setContent(configDto.content());
+        config.setContent(configDto.customText());
 
         if (configDto.files() != null) {
             for (FileDto fileDto : configDto.files()) {

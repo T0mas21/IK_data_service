@@ -4,10 +4,12 @@ WORKDIR /app
 COPY pom.xml .
 COPY ConfigService/pom.xml ./ConfigService/
 COPY ScrapperService/pom.xml ./ScrapperService/
+COPY VectorService/pom.xml ./VectorService/
 RUN mvn dependency:go-offline -B
 
 COPY ConfigService ./ConfigService
 COPY ScrapperService ./ScrapperService
+COPY VectorService ./VectorService
 
 RUN mvn clean package -DskipTests -pl ScrapperService -am
 

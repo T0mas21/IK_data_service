@@ -2,6 +2,7 @@ package org.config.service;
 
 import org.config.data.model.Config;
 import org.config.data.model.File;
+import org.config.dto.UploadUrlDto;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -24,4 +25,15 @@ public interface ConfigService {
     File addFileToConfig(Long configId, MultipartFile multipartFile);
 
     void removeFileFromConfig(Long configId, Long fileId);
+
+    /**
+     * Vytvoří signed upload URL pro nahrání souboru přímo do Supabase Storage, bez vytvoření
+     * záznamu souboru v DB — ten vznikne až zavoláním {@link #registerFile}.
+     */
+    UploadUrlDto createUploadUrl(Long configId, String fileName, String fileType);
+
+    /**
+     * Zaregistruje soubor, který byl už nahrán přímo do Supabase Storage (viz {@link #createUploadUrl}).
+     */
+    File registerFile(Long configId, String storagePath, String fileName, String fileType);
 }
