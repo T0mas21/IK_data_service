@@ -1,0 +1,21 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: VectorService
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+supabase:
+  url: ${SUPABASE_URL:}
+  key: ${SUPABASE_KEY:}
+  bucket: ${BUCKET_NAME:config-files}
+
+vector-store:
+  jdbc-url: ${DB_URL}
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  table: ${VECTOR_TABLE:document_chunks}
