@@ -37,11 +37,14 @@ public class EmbeddingStoreConfig {
         dataSource.setUser(username);
         dataSource.setPassword(password);
 
+        // useIndex(false): při tomto rozsahu dat (řádově stovky až tisíce chunků na thesis-scale
+        // projekt) je sekvenční scan dost rychlý a nevyžaduje ladění IVFFlat parametru indexListSize
+        // (ten navíc dává smysl trénovat až na neprázdné tabulce, ne při startu na prázdné).
         return PgVectorEmbeddingStore.datasourceBuilder()
                 .datasource(dataSource)
                 .table(table)
                 .dimension(embeddingModel.dimension())
-                .useIndex(true)
+                .useIndex(false)
                 .createTable(true)
                 .build();
     }
