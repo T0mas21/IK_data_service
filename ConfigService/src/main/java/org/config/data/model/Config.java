@@ -32,8 +32,8 @@ public class Config {
     private String url;
 
     @Lob
-    @Column(name = "content", columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "`customText`", columnDefinition = "TEXT")
+    private String customText;
 
     @OneToMany(mappedBy = "config", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<File> files = new ArrayList<>();
@@ -48,14 +48,14 @@ public class Config {
     public Config() {}
 
     public Config(Long id, String name, String description, Integer timeout, String userAgent,
-                  String url, String content, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                  String url, String customText, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.timeout = timeout;
         this.userAgent = userAgent;
         this.url = url;
-        this.content = content;
+        this.customText = customText;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -118,12 +118,12 @@ public class Config {
         this.url = url;
     }
 
-    public String getContent() {
-        return content;
+    public String getCustomText() {
+        return customText;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setCustomText(String customText) {
+        this.customText = customText;
     }
 
     public List<File> getFiles() {

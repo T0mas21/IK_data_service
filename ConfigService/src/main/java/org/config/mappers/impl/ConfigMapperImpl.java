@@ -38,7 +38,7 @@ public class ConfigMapperImpl implements ConfigMapper {
                 configEntity.getTimeout(),
                 configEntity.getUserAgent(),
                 configEntity.getUrl(),
-                configEntity.getContent(),
+                configEntity.getCustomText(),
                 fileDtos
         );
     }
@@ -55,7 +55,7 @@ public class ConfigMapperImpl implements ConfigMapper {
         config.setTimeout(configDto.timeout());
         config.setUserAgent(configDto.userAgent());
         config.setUrl(configDto.url());
-        config.setContent(configDto.customText());
+        config.setCustomText(configDto.customText());
 
         if (configDto.files() != null) {
             for (FileDto fileDto : configDto.files()) {

@@ -110,7 +110,7 @@ public class ConfigServiceImpl implements ConfigService {
         existingConfig.setTimeout(updatedConfig.getTimeout());
         existingConfig.setUserAgent(updatedConfig.getUserAgent());
         existingConfig.setUrl(updatedConfig.getUrl());
-        existingConfig.setContent(updatedConfig.getContent());
+        existingConfig.setCustomText(updatedConfig.getCustomText());
 
         reindexConfig(existingConfig);
         return existingConfig;
@@ -228,6 +228,6 @@ public class ConfigServiceImpl implements ConfigService {
      */
     private void reindexConfig(Config config) {
         String scrapedText = scrapperServiceClient.scrapeText(config.getUrl(), config.getTimeout(), config.getUserAgent());
-        vectorServiceClient.indexConfig(config.getId(), config.getContent(), scrapedText, config.getFiles());
+        vectorServiceClient.indexConfig(config.getId(), config.getCustomText(), scrapedText, config.getFiles());
     }
 }
