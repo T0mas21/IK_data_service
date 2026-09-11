@@ -31,7 +31,6 @@ public class Config {
     @Column(length = 500)
     private String url;
 
-    @Lob
     @Column(name = "`customText`", columnDefinition = "TEXT")
     private String customText;
 
