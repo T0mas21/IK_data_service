@@ -14,6 +14,9 @@ public interface ConfigRepository extends JpaRepository<Config, Long> {
 
     Optional<Config> findByName(String name);
 
+    @Query("SELECT DISTINCT c FROM Config c LEFT JOIN FETCH c.files WHERE c.name = :name")
+    Optional<Config> findByNameWithFiles(@Param("name") String name);
+
     @Query("SELECT c.name FROM Config c")
     List<String> findAllNames();
 
@@ -21,4 +24,7 @@ public interface ConfigRepository extends JpaRepository<Config, Long> {
 
     @Query("SELECT DISTINCT c FROM Config c LEFT JOIN FETCH c.files WHERE c.id = :id")
     Optional<Config> findByIdWithFiles(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT c FROM Config c LEFT JOIN FETCH c.files")
+    List<Config> findAllWithFiles();
 }

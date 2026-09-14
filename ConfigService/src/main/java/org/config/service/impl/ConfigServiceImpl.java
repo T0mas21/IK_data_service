@@ -73,7 +73,7 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Override
     public Config findByName(String name) {
-        return this.configRepository.findByName(name)
+        return this.configRepository.findByNameWithFiles(name)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Konfigurace '" + name + "' nebyla nalezena."
@@ -87,7 +87,7 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Override
     public List<Config> findAll() {
-        return this.configRepository.findAll();
+        return this.configRepository.findAllWithFiles();
     }
 
     @Override
@@ -219,6 +219,17 @@ public class ConfigServiceImpl implements ConfigService {
         File savedFile = fileRepository.save(file);
         reindexConfig(config);
         return savedFile;
+    }
+
+    @Override
+    public String getFileDownloadUrl(Long configId, String fileName) {
+        File file = fileRepository.findByConfigIdAndFileName(configId, fileName)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Soubor '" + fileName + "' nebyl u konfigurace s id " + configId + " nalezen."
+                ));
+
+        return supabaseStorageService.createSignedDownloadUrl(file.getStoragePath());
     }
 
     /**

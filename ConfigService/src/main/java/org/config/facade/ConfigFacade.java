@@ -24,4 +24,6 @@ public interface ConfigFacade {
 
     UploadUrlDto createUploadUrl(Long configId, UploadUrlRequestDto request);
     FileDto registerFile(Long configId, RegisterFileDto request);
+
+    String getFileDownloadUrl(Long configId, String fileName);
 }

@@ -21,7 +21,7 @@ class ConfigServiceFindByNameTest extends BaseConfigServiceTest {
         config.setUserAgent("Mozilla/5.0");
         config.setUrl("https://example.com");
 
-        when(configRepository.findByName("my_config")).thenReturn(Optional.of(config));
+        when(configRepository.findByNameWithFiles("my_config")).thenReturn(Optional.of(config));
 
         Config result = configService.findByName("my_config");
 
@@ -35,7 +35,7 @@ class ConfigServiceFindByNameTest extends BaseConfigServiceTest {
 
     @Test
     void findByName_ThrowsException_WhenNotFound() {
-        when(configRepository.findByName("unknown")).thenReturn(Optional.empty());
+        when(configRepository.findByNameWithFiles("unknown")).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,

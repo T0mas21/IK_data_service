@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
 import java.util.List;
 
 
@@ -110,5 +111,18 @@ public class ConfigApi {
                                                  @Valid @RequestBody RegisterFileDto request) {
         FileDto registered = configFacade.registerFile(configId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(registered);
+    }
+
+    /**
+     * Přesměruje klienta na jednorázovou signed URL pro stažení souboru přímo ze Supabase Storage
+     * (bajty souboru tuto aplikací neprochází). Soubor je identifikován kombinací configId + jméno
+     * souboru, protože jméno je unikátní jen v rámci jedné konfigurace.
+     */
+    @GetMapping("/{configId}/files/{fileName}")
+    public ResponseEntity<Void> downloadFile(@PathVariable Long configId, @PathVariable String fileName) {
+        String downloadUrl = configFacade.getFileDownloadUrl(configId, fileName);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(downloadUrl))
+                .build();
     }
 }

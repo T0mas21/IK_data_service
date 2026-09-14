@@ -36,4 +36,10 @@ public interface ConfigService {
      * Zaregistruje soubor, který byl už nahrán přímo do Supabase Storage (viz {@link #createUploadUrl}).
      */
     File registerFile(Long configId, String storagePath, String fileName, String fileType);
+
+    /**
+     * Vrátí jednorázovou signed URL pro stažení souboru identifikovaného kombinací configId + jméno
+     * souboru (jméno je unikátní jen v rámci daného configu, viz {@code ux_config_files_config_id_file_name}).
+     */
+    String getFileDownloadUrl(Long configId, String fileName);
 }

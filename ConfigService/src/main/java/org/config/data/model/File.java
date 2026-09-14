@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "config_files")
+@Table(name = "config_files",
+        uniqueConstraints = @UniqueConstraint(name = "ux_config_files_config_id_file_name",
+                columnNames = {"config_id", "file_name"}))
 public class File {
 
     @Id

@@ -124,4 +124,9 @@ public class ConfigFacadeImpl implements ConfigFacade {
         File savedFile = configService.registerFile(configId, request.storagePath(), request.fileName(), request.fileType());
         return fileMapper.toDto(savedFile);
     }
+
+    @Override
+    public String getFileDownloadUrl(Long configId, String fileName) {
+        return configService.getFileDownloadUrl(configId, fileName);
+    }
 }

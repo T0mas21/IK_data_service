@@ -17,6 +17,8 @@ import java.util.Map;
 @Service
 public class SupabaseStorageServiceImpl implements SupabaseStorageService {
 
+    private static final int DOWNLOAD_URL_TTL_SECONDS = 60;
+
     private final RestTemplate restTemplate;
 
     @Value("${supabase.url}")
@@ -99,6 +101,36 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         }
     }
 
+    @Override
+    public String createSignedDownloadUrl(String storagePath) {
+        HttpHeaders headers = buildAuthHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(Map.of("expiresIn", DOWNLOAD_URL_TTL_SECONDS), headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    signDownloadUrl(storagePath), HttpMethod.POST, request, Map.class);
+
+            Object signedUrl = response.getBody() != null ? response.getBody().get("signedURL") : null;
+            if (signedUrl == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Supabase Storage nevrátilo signed download URL."
+                );
+            }
+
+            return supabaseUrl + "/storage/v1" + signedUrl;
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Soubor v úložišti nebyl nalezen.", e);
+        } catch (HttpClientErrorException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Vytvoření signed download URL v Supabase Storage selhalo: " + e.getResponseBodyAsString(),
+                    e
+            );
+        }
+    }
+
     private String objectUrl(String storagePath) {
         String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
         return supabaseUrl + "/storage/v1/object/" + bucket + "/" + encodedPath;
@@ -107,6 +139,11 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
     private String signUploadUrl(String storagePath) {
         String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
         return supabaseUrl + "/storage/v1/object/upload/sign/" + bucket + "/" + encodedPath;
+    }
+
+    private String signDownloadUrl(String storagePath) {
+        String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
+        return supabaseUrl + "/storage/v1/object/sign/" + bucket + "/" + encodedPath;
     }
 
     private HttpHeaders buildAuthHeaders() {

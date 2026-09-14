@@ -25,7 +25,7 @@ class ConfigServiceFindAllTest extends BaseConfigServiceTest {
     void findAll_Success() {
         Config c1 = new Config();
         Config c2 = new Config();
-        when(configRepository.findAll()).thenReturn(List.of(c1, c2));
+        when(configRepository.findAllWithFiles()).thenReturn(List.of(c1, c2));
 
         List<Config> result = configService.findAll();
 
