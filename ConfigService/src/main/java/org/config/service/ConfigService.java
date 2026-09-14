@@ -33,6 +33,14 @@ public interface ConfigService {
     UploadUrlDto createUploadUrl(Long configId, String fileName, String fileType);
 
     /**
+     * Vytvoří signed upload URL ještě předtím, než config v DB existuje — cesta v úložišti se
+     * odvozuje z {@code configName} místo z {@code configId}, protože ten v tuto chvíli ještě
+     * neexistuje. Po nahrání bajtů se {@code storagePath} z odpovědi pošle v {@code files} rovnou
+     * v požadavku na {@link #createConfig(Config)}.
+     */
+    UploadUrlDto createUploadUrlForNewConfig(String configName, String fileName, String fileType);
+
+    /**
      * Zaregistruje soubor, který byl už nahrán přímo do Supabase Storage (viz {@link #createUploadUrl}).
      */
     File registerFile(Long configId, String storagePath, String fileName, String fileType);

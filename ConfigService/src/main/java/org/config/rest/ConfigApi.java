@@ -6,6 +6,7 @@ import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.dto.FileDto;
 import org.config.dto.RegisterFileDto;
+import org.config.dto.UploadUrlByNameRequestDto;
 import org.config.dto.UploadUrlDto;
 import org.config.dto.UploadUrlRequestDto;
 import org.config.facade.ConfigFacade;
@@ -100,6 +101,17 @@ public class ConfigApi {
     public ResponseEntity<UploadUrlDto> createUploadUrl(@PathVariable Long configId,
                                                           @Valid @RequestBody UploadUrlRequestDto request) {
         return ResponseEntity.ok(configFacade.createUploadUrl(configId, request));
+    }
+
+    /**
+     * Vrátí signed upload URL pro nahrání souboru ještě předtím, než config v DB existuje —
+     * použij při vytváření nového configu se soubory. Cesta v úložišti se odvozuje z jména
+     * configu, protože configId v tuto chvíli ještě neexistuje. Po nahrání bajtů pošli
+     * {@code storagePath} z odpovědi v poli {@code files} v požadavku na {@link #createConfig}.
+     */
+    @PostMapping(value = "/files/upload-url", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UploadUrlDto> createUploadUrlForNewConfig(@Valid @RequestBody UploadUrlByNameRequestDto request) {
+        return ResponseEntity.ok(configFacade.createUploadUrlForNewConfig(request));
     }
 
     /**

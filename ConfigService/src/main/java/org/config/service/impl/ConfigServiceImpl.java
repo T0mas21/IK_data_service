@@ -66,9 +66,34 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
 
+        validateFilesForCreate(newConfig);
+
         Config savedConfig = this.configRepository.save(newConfig);
         reindexConfig(savedConfig);
         return savedConfig;
+    }
+
+    /**
+     * Soubory poslané v {@code files} při vytváření configu musí už být skutečně nahrané
+     * v Supabase Storage (viz {@link #createUploadUrlForNewConfig}) — tady se jen ověří, že mají
+     * vyplněné povinné údaje, jinak by cascade insert Configu spadl na NOT NULL constraintu
+     * v {@code config_files}.
+     */
+    private void validateFilesForCreate(Config newConfig) {
+        if (newConfig.getFiles() == null) {
+            return;
+        }
+
+        for (File file : newConfig.getFiles()) {
+            if (file.getStoragePath() == null || file.getStoragePath().isBlank()
+                    || file.getFileName() == null || file.getFileName().isBlank()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Každý soubor v 'files' musí mít vyplněné 'storagePath' a 'fileName' - "
+                                + "soubor se musí nejprve nahrát přes /upload-url endpoint."
+                );
+            }
+        }
     }
 
     @Override
@@ -142,7 +167,7 @@ public class ConfigServiceImpl implements ConfigService {
                 ));
 
         String originalFileName = multipartFile.getOriginalFilename();
-        String storagePath = "configs/" + configId + "/" + UUID.randomUUID() + "_" + originalFileName;
+        String storagePath = buildStoragePath(configId.toString(), originalFileName);
 
         byte[] content;
         try {
@@ -198,10 +223,40 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
 
-        String storagePath = "configs/" + configId + "/" + UUID.randomUUID() + "_" + fileName;
+        String storagePath = buildStoragePath(configId.toString(), fileName);
         String uploadUrl = supabaseStorageService.createSignedUploadUrl(storagePath);
 
         return new UploadUrlDto(storagePath, uploadUrl, fileName, fileType);
+    }
+
+    @Override
+    public UploadUrlDto createUploadUrlForNewConfig(String configName, String fileName, String fileType) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jméno souboru nesmí být prázdné.");
+        }
+
+        if (configName == null || configName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jméno konfigurace nesmí být prázdné.");
+        }
+
+        String storagePath = buildStoragePath(sanitizeForStoragePath(configName), fileName);
+        String uploadUrl = supabaseStorageService.createSignedUploadUrl(storagePath);
+
+        return new UploadUrlDto(storagePath, uploadUrl, fileName, fileType);
+    }
+
+    private String buildStoragePath(String folder, String fileName) {
+        return "configs/" + folder + "/" + UUID.randomUUID() + "_" + fileName;
+    }
+
+    /**
+     * Config.name je volné uživatelské pole - pro použití jako složka v Supabase Storage se musí
+     * omezit na bezpečnou sadu znaků (Supabase cesty nesmí obsahovat mezery, lomítka apod.).
+     */
+    private String sanitizeForStoragePath(String name) {
+        String sanitized = name.trim().toLowerCase().replaceAll("[^a-z0-9_-]+", "_");
+        sanitized = sanitized.replaceAll("^_+|_+$", "");
+        return sanitized.isBlank() ? UUID.randomUUID().toString() : sanitized;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.config.unit.service;
 
 import org.config.data.model.Config;
+import org.config.data.model.File;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -81,6 +82,59 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
         assertEquals("Konfigurační soubor 'existing_config' již existuje.", exception.getReason());
+        verify(configRepository, never()).save(any());
+    }
+
+    @Test
+    void createConfig_Success_WithValidFilesAlreadyUploadedViaSignedUrl() {
+        Config config = new Config();
+        config.setName("config_with_files");
+        File file = new File(config, "configs/config_with_files/uuid_smlouva.pdf", "smlouva.pdf", "application/pdf");
+        config.addFile(file);
+
+        when(configRepository.findByName("config_with_files")).thenReturn(Optional.empty());
+        when(configRepository.save(config)).thenReturn(config);
+
+        Config result = configService.createConfig(config);
+
+        assertNotNull(result);
+        assertEquals(1, result.getFiles().size());
+        verify(configRepository, times(1)).save(config);
+    }
+
+    @Test
+    void createConfig_ThrowsException_WhenFileHasBlankStoragePath() {
+        Config config = new Config();
+        config.setName("config_with_bad_file");
+        File file = new File(config, "  ", "smlouva.pdf", "application/pdf");
+        config.addFile(file);
+
+        when(configRepository.findByName("config_with_bad_file")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.createConfig(config)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(configRepository, never()).save(any());
+    }
+
+    @Test
+    void createConfig_ThrowsException_WhenFileHasNullFileName() {
+        Config config = new Config();
+        config.setName("config_with_bad_file");
+        File file = new File(config, "configs/config_with_bad_file/uuid.pdf", null, "application/pdf");
+        config.addFile(file);
+
+        when(configRepository.findByName("config_with_bad_file")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.createConfig(config)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(configRepository, never()).save(any());
     }
 }

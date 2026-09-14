@@ -7,6 +7,7 @@ import org.config.dto.ConfigNameItemDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.dto.FileDto;
 import org.config.dto.RegisterFileDto;
+import org.config.dto.UploadUrlByNameRequestDto;
 import org.config.dto.UploadUrlDto;
 import org.config.dto.UploadUrlRequestDto;
 import org.config.facade.ConfigFacade;
@@ -117,6 +118,11 @@ public class ConfigFacadeImpl implements ConfigFacade {
     @Override
     public UploadUrlDto createUploadUrl(Long configId, UploadUrlRequestDto request) {
         return configService.createUploadUrl(configId, request.fileName(), request.fileType());
+    }
+
+    @Override
+    public UploadUrlDto createUploadUrlForNewConfig(UploadUrlByNameRequestDto request) {
+        return configService.createUploadUrlForNewConfig(request.configName(), request.fileName(), request.fileType());
     }
 
     @Override

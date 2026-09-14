@@ -3,6 +3,7 @@ package org.config.facade;
 import org.config.dto.ConfigDto;
 import org.config.dto.ConfigNamesDto;
 import org.config.dto.FileDto;
+import org.config.dto.UploadUrlByNameRequestDto;
 import org.config.dto.UploadUrlDto;
 import org.config.dto.UploadUrlRequestDto;
 import org.config.dto.RegisterFileDto;
@@ -23,6 +24,7 @@ public interface ConfigFacade {
     void deleteFile(Long configId, Long fileId);
 
     UploadUrlDto createUploadUrl(Long configId, UploadUrlRequestDto request);
+    UploadUrlDto createUploadUrlForNewConfig(UploadUrlByNameRequestDto request);
     FileDto registerFile(Long configId, RegisterFileDto request);
 
     String getFileDownloadUrl(Long configId, String fileName);

@@ -13,6 +13,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -116,6 +117,46 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         );
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(supabaseStorageService, never()).createSignedUploadUrl(anyString());
+    }
+
+    @Test
+    void createUploadUrlForNewConfig_Success_BuildsPathFromSanitizedName() {
+        when(supabaseStorageService.createSignedUploadUrl(anyString()))
+                .thenReturn("https://supabase.example/storage/v1/object/upload/sign/config-files/configs/muj_config/uuid_smlouva.pdf?token=abc");
+
+        UploadUrlDto result = configService.createUploadUrlForNewConfig("Muj Config!", "smlouva.pdf", "application/pdf");
+
+        assertNotNull(result);
+        assertTrue(result.storagePath().startsWith("configs/muj_config/"));
+        assertTrue(result.storagePath().endsWith("_smlouva.pdf"));
+        assertEquals("smlouva.pdf", result.fileName());
+        assertEquals("application/pdf", result.fileType());
+
+        // config v tuto chvíli v DB vůbec nemusí existovat
+        verify(configRepository, never()).findById(anyLong());
+        verify(configRepository, never()).findByName(anyString());
+    }
+
+    @Test
+    void createUploadUrlForNewConfig_ThrowsException_WhenConfigNameIsBlank() {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.createUploadUrlForNewConfig("  ", "smlouva.pdf", "application/pdf")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(supabaseStorageService, never()).createSignedUploadUrl(anyString());
+    }
+
+    @Test
+    void createUploadUrlForNewConfig_ThrowsException_WhenFileNameIsBlank() {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.createUploadUrlForNewConfig("muj_config", " ", "application/pdf")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(supabaseStorageService, never()).createSignedUploadUrl(anyString());
     }
 
