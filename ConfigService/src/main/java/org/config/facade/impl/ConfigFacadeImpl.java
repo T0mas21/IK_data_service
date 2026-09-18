@@ -95,7 +95,7 @@ public class ConfigFacadeImpl implements ConfigFacade {
     @Override
     public void updateConfig(String name, ConfigDto newConfig) {
         Config newConfigEntity = configMapper.toEntity(newConfig);
-        configService.updateConfig(name, newConfigEntity);
+        configService.updateConfig(name, newConfigEntity, newConfig.files());
     }
 
     @Override

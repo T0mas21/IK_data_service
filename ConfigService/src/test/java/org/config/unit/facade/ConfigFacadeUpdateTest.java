@@ -27,6 +27,6 @@ class ConfigFacadeUpdateTest extends BaseConfigFacadeTest {
 
         assertDoesNotThrow(() -> configFacade.updateConfig(name, dto));
 
-        verify(configService).updateConfig(eq(name), any());
+        verify(configService).updateConfig(eq(name), any(), eq(List.of()));
     }
 }

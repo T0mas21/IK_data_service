@@ -8,6 +8,7 @@ import org.config.data.model.Config;
 import org.config.data.model.File;
 import org.config.data.repository.ConfigRepository;
 import org.config.data.repository.FileRepository;
+import org.config.dto.FileDto;
 import org.config.dto.UploadUrlDto;
 import org.config.service.ConfigService;
 import org.config.service.storage.SupabaseStorageService;
@@ -18,9 +19,15 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ConfigServiceImpl implements ConfigService {
@@ -117,8 +124,8 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Override
     @Transactional
-    public Config updateConfig(String name, Config updatedConfig) {
-        Config existingConfig = configRepository.findByName(name)
+    public Config updateConfig(String name, Config updatedConfig, List<FileDto> requestedFiles) {
+        Config existingConfig = configRepository.findByNameWithFiles(name)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Konfigurační soubor '" + name + "' neexistuje."
@@ -137,8 +144,81 @@ public class ConfigServiceImpl implements ConfigService {
         existingConfig.setUrl(updatedConfig.getUrl());
         existingConfig.setCustomText(updatedConfig.getCustomText());
 
+        syncFiles(existingConfig, requestedFiles);
+
         reindexConfig(existingConfig);
         return existingConfig;
+    }
+
+    /**
+     * Sesynchronizuje soubory configu s {@code requestedFiles}, které reprezentuje kompletní
+     * požadovaný seznam. Záznam bez {@code content} musí odpovídat existujícímu souboru (jinak 400)
+     * a zůstane beze změny; záznam s vyplněným base64 {@code content} se nahraje do Supabase Storage
+     * (u shodného fileName nahradí starý obsah); existující soubory, které v seznamu chybí, se
+     * smažou ze Supabase Storage i z DB. {@code null} znamená "soubory needitovat".
+     */
+    private void syncFiles(Config config, List<FileDto> requestedFiles) {
+        if (requestedFiles == null) {
+            return;
+        }
+
+        Set<String> existingNames = config.getFiles().stream()
+                .map(File::getFileName)
+                .collect(Collectors.toSet());
+
+        Map<String, byte[]> contentsToUpload = new LinkedHashMap<>();
+        Map<String, String> typesToUpload = new LinkedHashMap<>();
+
+        for (FileDto fileDto : requestedFiles) {
+            if (fileDto.fileName() == null || fileDto.fileName().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jméno souboru nesmí být prázdné.");
+            }
+
+            if (fileDto.content() != null && !fileDto.content().isBlank()) {
+                byte[] decoded;
+                try {
+                    decoded = Base64.getDecoder().decode(fileDto.content());
+                } catch (IllegalArgumentException e) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Obsah souboru '" + fileDto.fileName() + "' není platná base64 hodnota."
+                    );
+                }
+                contentsToUpload.put(fileDto.fileName(), decoded);
+                typesToUpload.put(fileDto.fileName(), fileDto.fileType());
+            } else if (!existingNames.contains(fileDto.fileName())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Soubor '" + fileDto.fileName() + "' nebyl u konfigurace nalezen a nemá obsah k nahrání."
+                );
+            }
+        }
+
+        Set<String> keepNames = requestedFiles.stream()
+                .map(FileDto::fileName)
+                .collect(Collectors.toSet());
+
+        for (File existing : new ArrayList<>(config.getFiles())) {
+            boolean willBeReplaced = contentsToUpload.containsKey(existing.getFileName());
+            boolean kept = keepNames.contains(existing.getFileName());
+            if (willBeReplaced || !kept) {
+                supabaseStorageService.deleteFile(existing.getStoragePath());
+                config.removeFile(existing);
+                fileRepository.delete(existing);
+            }
+        }
+
+        for (Map.Entry<String, byte[]> entry : contentsToUpload.entrySet()) {
+            String fileName = entry.getKey();
+            String fileType = typesToUpload.get(fileName);
+            String storagePath = buildStoragePath(config.getId().toString(), fileName);
+
+            supabaseStorageService.uploadFile(storagePath, entry.getValue(), fileType);
+
+            File newFile = new File(config, storagePath, fileName, fileType);
+            config.addFile(newFile);
+            fileRepository.save(newFile);
+        }
     }
 
     @Override

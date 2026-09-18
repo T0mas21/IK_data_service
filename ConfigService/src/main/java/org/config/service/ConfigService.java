@@ -2,6 +2,7 @@ package org.config.service;
 
 import org.config.data.model.Config;
 import org.config.data.model.File;
+import org.config.dto.FileDto;
 import org.config.dto.UploadUrlDto;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +19,14 @@ public interface ConfigService {
 
     List<Config> findAll();
 
-    Config updateConfig(String name, Config updatedConfig);
+    /**
+     * {@code requestedFiles} reprezentuje kompletní požadovaný seznam souborů configu:
+     * záznam bez {@code content} musí odpovídat již existujícímu souboru (jinak beze změny),
+     * záznam s vyplněným base64 {@code content} se nahraje (u shodného fileName nahradí starý
+     * obsah) a existující soubory, které v seznamu chybí, se smažou. {@code null} znamená
+     * "soubory needitovat".
+     */
+    Config updateConfig(String name, Config updatedConfig, List<FileDto> requestedFiles);
 
     void deleteByName(String name);
 

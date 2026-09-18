@@ -18,7 +18,8 @@ public class FileMapperImpl implements FileMapper {
                 fileEntity.getId(),
                 fileEntity.getFileName(),
                 fileEntity.getStoragePath(),
-                fileEntity.getFileType()
+                fileEntity.getFileType(),
+                null
         );
     }
 
