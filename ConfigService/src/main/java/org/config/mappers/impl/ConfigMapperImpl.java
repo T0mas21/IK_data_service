@@ -1,7 +1,6 @@
 package org.config.mappers.impl;
 
 import org.config.data.model.Config;
-import org.config.data.model.File;
 import org.config.dto.ConfigDto;
 import org.config.dto.FileDto;
 import org.config.mappers.ConfigMapper;
@@ -56,13 +55,6 @@ public class ConfigMapperImpl implements ConfigMapper {
         config.setUserAgent(configDto.userAgent());
         config.setUrl(configDto.url());
         config.setCustomText(configDto.customText());
-
-        if (configDto.files() != null) {
-            for (FileDto fileDto : configDto.files()) {
-                File fileEntity = fileMapper.toEntity(fileDto);
-                config.addFile(fileEntity);
-            }
-        }
 
         return config;
     }

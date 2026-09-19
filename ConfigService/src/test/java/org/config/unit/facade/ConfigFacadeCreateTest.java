@@ -49,7 +49,7 @@ class ConfigFacadeCreateTest extends BaseConfigFacadeTest {
         );
 
         when(configMapper.toEntity(inputDto)).thenReturn(entity);
-        when(configService.createConfig(entity)).thenReturn(savedEntity);
+        when(configService.createConfig(entity, inputDto.files())).thenReturn(savedEntity);
         when(configMapper.toDto(savedEntity)).thenReturn(expectedDto);
 
         ConfigDto result = configFacade.createConfig(inputDto);
@@ -62,7 +62,7 @@ class ConfigFacadeCreateTest extends BaseConfigFacadeTest {
         assertEquals("https://example.com", result.url());
 
         verify(configMapper).toEntity(inputDto);
-        verify(configService).createConfig(entity);
+        verify(configService).createConfig(entity, inputDto.files());
         verify(configMapper).toDto(savedEntity);
     }
 }

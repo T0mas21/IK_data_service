@@ -51,7 +51,8 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
-    public Config createConfig(Config newConfig) {
+    @Transactional
+    public Config createConfig(Config newConfig, List<FileDto> requestedFiles) {
         if (newConfig.getName() == null || newConfig.getName().isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -73,31 +74,69 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
 
-        validateFilesForCreate(newConfig);
+        List<FileDto> preUploaded = new ArrayList<>();
+        List<NewFileUpload> toUpload = new ArrayList<>();
+        splitFilesForCreate(requestedFiles, preUploaded, toUpload);
 
-        Config savedConfig = this.configRepository.save(newConfig);
+        for (FileDto fileDto : preUploaded) {
+            newConfig.addFile(new File(newConfig, fileDto.storagePath(), fileDto.fileName(), fileDto.fileType()));
+        }
+
+        Config savedConfig = configRepository.save(newConfig);
+
+        for (NewFileUpload upload : toUpload) {
+            String storagePath = buildStoragePath(savedConfig.getId().toString(), upload.fileName());
+            supabaseStorageService.uploadFile(storagePath, upload.content(), upload.fileType());
+
+            File newFile = new File(savedConfig, storagePath, upload.fileName(), upload.fileType());
+            savedConfig.addFile(newFile);
+            fileRepository.save(newFile);
+        }
+
         reindexConfig(savedConfig);
         return savedConfig;
     }
 
+    private record NewFileUpload(String fileName, String fileType, byte[] content) {}
+
     /**
-     * Soubory poslané v {@code files} při vytváření configu musí už být skutečně nahrané
-     * v Supabase Storage (viz {@link #createUploadUrlForNewConfig}) — tady se jen ověří, že mají
-     * vyplněné povinné údaje, jinak by cascade insert Configu spadl na NOT NULL constraintu
-     * v {@code config_files}.
+     * Rozdělí požadované soubory na (a) už dříve nahrané přímo do Supabase Storage přes signed
+     * upload URL (viz {@link #createUploadUrlForNewConfig}) — identifikované vyplněným
+     * {@code storagePath} — a (b) nové soubory poslané jako base64 v {@code content}, které se
+     * nahrají do Supabase Storage až po uložení configu (cesta v úložišti se odvozuje z jeho id,
+     * které do té doby neexistuje).
      */
-    private void validateFilesForCreate(Config newConfig) {
-        if (newConfig.getFiles() == null) {
+    private void splitFilesForCreate(List<FileDto> requestedFiles, List<FileDto> preUploaded, List<NewFileUpload> toUpload) {
+        if (requestedFiles == null) {
             return;
         }
 
-        for (File file : newConfig.getFiles()) {
-            if (file.getStoragePath() == null || file.getStoragePath().isBlank()
-                    || file.getFileName() == null || file.getFileName().isBlank()) {
+        for (FileDto fileDto : requestedFiles) {
+            if (fileDto.fileName() == null || fileDto.fileName().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jméno souboru nesmí být prázdné.");
+            }
+
+            boolean hasContent = fileDto.content() != null && !fileDto.content().isBlank();
+            boolean hasStoragePath = fileDto.storagePath() != null && !fileDto.storagePath().isBlank();
+
+            if (hasContent) {
+                byte[] decoded;
+                try {
+                    decoded = Base64.getDecoder().decode(fileDto.content());
+                } catch (IllegalArgumentException e) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Obsah souboru '" + fileDto.fileName() + "' není platná base64 hodnota."
+                    );
+                }
+                toUpload.add(new NewFileUpload(fileDto.fileName(), fileDto.fileType(), decoded));
+            } else if (hasStoragePath) {
+                preUploaded.add(fileDto);
+            } else {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "Každý soubor v 'files' musí mít vyplněné 'storagePath' a 'fileName' - "
-                                + "soubor se musí nejprve nahrát přes /upload-url endpoint."
+                        "Soubor '" + fileDto.fileName() + "' musí mít buď 'content' (base64) k nahrání, "
+                                + "nebo už vyplněný 'storagePath' z předchozího nahrání přes /upload-url."
                 );
             }
         }

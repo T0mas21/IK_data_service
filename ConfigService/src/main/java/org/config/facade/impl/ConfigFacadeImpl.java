@@ -38,14 +38,14 @@ public class ConfigFacadeImpl implements ConfigFacade {
     @Override
     public ConfigDto createConfig(ConfigDto configDto) {
         Config entity = configMapper.toEntity(configDto);
-        Config savedEntity = configService.createConfig(entity);
+        Config savedEntity = configService.createConfig(entity, configDto.files());
         return configMapper.toDto(savedEntity);
     }
 
     @Override
     public ConfigDto createConfig(ConfigDto configDto, List<MultipartFile> files) {
         Config entity = configMapper.toEntity(configDto);
-        Config savedEntity = configService.createConfig(entity);
+        Config savedEntity = configService.createConfig(entity, configDto.files());
 
         List<FileDto> uploadedFiles = new ArrayList<>();
         if (files != null) {

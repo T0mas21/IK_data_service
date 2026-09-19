@@ -11,7 +11,13 @@ import java.util.Optional;
 
 public interface ConfigService {
 
-    Config createConfig(Config newConfig);
+    /**
+     * {@code requestedFiles} může kombinovat soubory už dříve nahrané přes signed upload URL
+     * (identifikované vyplněným {@code storagePath}) a nové soubory poslané jako base64
+     * v {@code content} — ty se nahrají do Supabase Storage se storagePath vygenerovanou
+     * serverem po uložení configu.
+     */
+    Config createConfig(Config newConfig, List<FileDto> requestedFiles);
 
     Config findByName(String name);
 
@@ -44,7 +50,7 @@ public interface ConfigService {
      * Vytvoří signed upload URL ještě předtím, než config v DB existuje — cesta v úložišti se
      * odvozuje z {@code configName} místo z {@code configId}, protože ten v tuto chvíli ještě
      * neexistuje. Po nahrání bajtů se {@code storagePath} z odpovědi pošle v {@code files} rovnou
-     * v požadavku na {@link #createConfig(Config)}.
+     * v požadavku na {@link #createConfig(Config, List)}.
      */
     UploadUrlDto createUploadUrlForNewConfig(String configName, String fileName, String fileType);
 
