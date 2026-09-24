@@ -37,8 +37,8 @@ API konzumuje externí integrační platforma "Metada" (flow operace typu `IK_Cr
 
 ## Postup při vývoji nových funkcí
 
-- Test-first: nejdřív se vytvoří test pro danou funkcionalitu (musí bez implementace shodně selhat), teprve poté samotná implementace.
-- Žádná nová funkcionalita se nepovažuje za hotovou, dokud pro ni neexistuje test a celá test suite modulu neprochází (`mvn -o clean test` v daném modulu).
+- Pořadí kroků je vždy: **1. test** (musí bez implementace shodně selhat) → **2. funkcionalita** (nejjednodušší implementace, která test projde) → **3. optimalizace** (zpřehlednění/zrychlení/zjednodušení kódu při zachování stejného chování - test i po optimalizaci musí dál procházet beze změny).
+- Žádná nová funkcionalita se nepovažuje za hotovou, dokud pro ni neexistuje test a celá test suite modulu neprochází (`mvn -o clean test` v daném modulu) - to platí i po kroku 3 (optimalizace).
 - Po odsouhlasené implementaci, která mění API kontrakt/veřejné chování služby, doplň stručný záznam do příslušného `<Service>.md` (ne do tohoto souboru) - jen to, co by jinak muselo být znovu objevováno (endpoint, kontrakt, netriviální gotcha), ne celý changelog.
 
 ## Práce s více agenty (subagents)
