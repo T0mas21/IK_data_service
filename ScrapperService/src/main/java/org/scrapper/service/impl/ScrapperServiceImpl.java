@@ -172,25 +172,20 @@ public class ScrapperServiceImpl implements ScrapperService {
         return true;
     }
 
-    private List<Map<String, String>> extractDownloadLinks(Document htmlDocument) {
+    List<Map<String, String>> extractDownloadLinks(Document htmlDocument) {
         Elements linkElements = htmlDocument.select("a[href]");
         List<Map<String, String>> downloadLinks = new ArrayList<>();
 
-        String fileExtensionsRegex = "(?i).*\\.(pdf|zip|rar|7z|csv|xlsx?|docx?|txt|pptx?|xml|json|mp3|mp4|exe|apk)$";
+        String fileExtensionsRegex = "(?i).*\\.(pdf|txt)(\\?.*)?$";
 
         for (Element link : linkElements) {
             String href = link.attr("abs:href");
             String rawHref = link.attr("href");
             String anchorText = link.text().trim();
 
-            boolean isDownloadAttr = link.hasAttr("download");
             boolean isFileExtension = rawHref.matches(fileExtensionsRegex);
 
-            boolean isInsideTable = link.parents().is("table");
-
-            boolean textMentionsFile = anchorText.matches("(?i).*(pdf|docx?|xlsx?|zip|rar|csv).*");
-
-            if (isDownloadAttr || isFileExtension || isInsideTable || textMentionsFile) {
+            if (isFileExtension) {
                 Map<String, String> fileData = new LinkedHashMap<>();
                 fileData.put("name", anchorText.isEmpty() ? "unnamed_file" : anchorText);
                 fileData.put("url", href.isEmpty() ? rawHref : href);
