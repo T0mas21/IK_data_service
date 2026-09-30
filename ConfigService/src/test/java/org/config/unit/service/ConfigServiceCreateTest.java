@@ -124,14 +124,12 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         when(configRepository.findByName("config_with_base64_file")).thenReturn(Optional.empty());
         when(configRepository.save(any(Config.class))).thenReturn(savedConfig);
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(supabaseStorageService.uploadFile(anyString(), any(byte[].class), eq("application/pdf")))
-                .thenReturn("configs/1/uuid_smlouva.pdf");
 
         Config result = configService.createConfig(config, List.of(newFile));
 
         assertEquals(1, result.getFiles().size());
         assertEquals("smlouva.pdf", result.getFiles().get(0).getFileName());
-        verify(supabaseStorageService).uploadFile(anyString(), any(byte[].class), eq("application/pdf"));
+        verify(supabaseStorageService).uploadFileAsync(anyString(), any(byte[].class), eq("application/pdf"));
         verify(fileRepository).save(any(File.class));
     }
 

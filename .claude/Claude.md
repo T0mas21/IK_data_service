@@ -35,6 +35,10 @@ Nasazeno na Render (např. `config-service-5zts.onrender.com`), free tier → **
 
 API konzumuje externí integrační platforma "Metada" (flow operace typu `IK_CreateConfig`, `IK_EditConfig`). Mapping polí v tomto flow je mimo tento repozitář, takže při debugování 400/500 chyb z produkce vždy nejdřív zkontroluj **přesný tvar JSON těla** v logu klienta, ne jen naši serverovou logiku – většina dosavadních chyb byla způsobená nesouladem názvů polí nebo neplatnou hodnotou (např. placeholder text místo skutečné hodnoty), ne bugem na backendu. Přesný kontrakt polí (`files` u configu apod.) je v `ConfigService/ConfigService.md`.
 
+## Vyřešené problémy
+
+Při debugování produkčních chyb (500/502 apod.) nejdřív zkontroluj [.claude/VyreseneProblemy.md](VyreseneProblemy.md) - log dřívějších diagnóz s obecným postupem, ne jen zápis "co bylo špatně". Po vyřešení nového netriviálního produkčního bugu tam přidej záznam (příznak → diagnostický postup → kořenová příčina → oprava → poučení), stejným formátem jako existující záznamy.
+
 ## Postup při vývoji nových funkcí
 
 - Pořadí kroků je vždy: **1. test** (musí bez implementace shodně selhat) → **2. funkcionalita** (nejjednodušší implementace, která test projde) → **3. optimalizace** (zpřehlednění/zrychlení/zjednodušení kódu při zachování stejného chování - test i po optimalizaci musí dál procházet beze změny).

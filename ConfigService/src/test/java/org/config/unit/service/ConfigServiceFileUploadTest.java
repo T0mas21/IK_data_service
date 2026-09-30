@@ -34,8 +34,6 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
 
         when(configRepository.findByIdWithFiles(1L)).thenReturn(Optional.of(config));
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(supabaseStorageService.uploadFile(anyString(), any(byte[].class), eq("application/pdf")))
-                .thenReturn("configs/1/uuid_smlouva.pdf");
         when(scrapperServiceClient.scrapeText(anyString(), any(), any())).thenReturn("naskrapovany text");
 
         File result = configService.addFileToConfig(1L, multipartFile);
@@ -46,9 +44,9 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         assertTrue(result.getStoragePath().startsWith("configs/1/"));
         assertTrue(result.getStoragePath().endsWith("_smlouva.pdf"));
 
-        // soubor se opravdu nahraje do Supabase Storage (bajty projdou přes appku)
+        // soubor se opravdu nahraje do Supabase Storage na pozadí (bajty projdou přes appku)
         verify(supabaseStorageService, times(1))
-                .uploadFile(anyString(), any(byte[].class), eq("application/pdf"));
+                .uploadFileAsync(anyString(), any(byte[].class), eq("application/pdf"));
         verify(fileRepository, times(1)).save(any(File.class));
 
         // config se po přidání souboru přeindexuje (scrape + vector index)
@@ -68,7 +66,7 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(supabaseStorageService, never()).uploadFile(anyString(), any(), anyString());
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
         verify(fileRepository, never()).save(any());
     }
 
@@ -83,7 +81,7 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         );
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        verify(supabaseStorageService, never()).uploadFile(anyString(), any(), anyString());
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
     }
 
     @Test
@@ -103,7 +101,7 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
 
         // v tomto kroku se ještě nic neukládá do DB ani nenahrávají bajty
         verify(fileRepository, never()).save(any());
-        verify(supabaseStorageService, never()).uploadFile(anyString(), any(), anyString());
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
         verify(vectorServiceClient, never()).indexConfig(any(), any(), any(), any());
     }
 

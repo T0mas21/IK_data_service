@@ -92,14 +92,12 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(supabaseStorageService.uploadFile(anyString(), any(byte[].class), eq("application/pdf")))
-                .thenReturn("configs/1/uuid_smlouva.pdf");
 
         Config result = configService.updateConfig(name, new Config(), List.of(newFile));
 
         assertEquals(1, result.getFiles().size());
         assertEquals("smlouva.pdf", result.getFiles().get(0).getFileName());
-        verify(supabaseStorageService).uploadFile(anyString(), any(byte[].class), eq("application/pdf"));
+        verify(supabaseStorageService).uploadFileAsync(anyString(), any(byte[].class), eq("application/pdf"));
         verify(fileRepository).save(any(File.class));
     }
 
@@ -117,15 +115,13 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(supabaseStorageService.uploadFile(anyString(), any(byte[].class), eq("application/pdf")))
-                .thenReturn("configs/1/uuid_smlouva.pdf");
 
         Config result = configService.updateConfig(name, new Config(), List.of(replacementFile));
 
         assertEquals(1, result.getFiles().size());
         verify(supabaseStorageService).deleteFile("configs/1/old_smlouva.pdf");
         verify(fileRepository).delete(oldFile);
-        verify(supabaseStorageService).uploadFile(anyString(), any(byte[].class), eq("application/pdf"));
+        verify(supabaseStorageService).uploadFileAsync(anyString(), any(byte[].class), eq("application/pdf"));
     }
 
     @Test
@@ -146,7 +142,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         assertEquals(1, result.getFiles().size());
         assertEquals("configs/1/old_smlouva.pdf", result.getFiles().get(0).getStoragePath());
         verify(supabaseStorageService, never()).deleteFile(anyString());
-        verify(supabaseStorageService, never()).uploadFile(anyString(), any(), anyString());
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
         verify(fileRepository, never()).delete(any());
     }
 
@@ -185,7 +181,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(supabaseStorageService, never()).uploadFile(anyString(), any(), anyString());
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
     }
 
     @Test

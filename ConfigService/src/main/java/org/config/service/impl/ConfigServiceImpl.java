@@ -86,11 +86,12 @@ public class ConfigServiceImpl implements ConfigService {
 
         for (NewFileUpload upload : toUpload) {
             String storagePath = buildStoragePath(savedConfig.getId().toString(), upload.fileName());
-            supabaseStorageService.uploadFile(storagePath, upload.content(), upload.fileType());
 
             File newFile = new File(savedConfig, storagePath, upload.fileName(), upload.fileType());
             savedConfig.addFile(newFile);
             fileRepository.save(newFile);
+
+            supabaseStorageService.uploadFileAsync(storagePath, upload.content(), upload.fileType());
         }
 
         reindexConfig(savedConfig);
@@ -252,11 +253,11 @@ public class ConfigServiceImpl implements ConfigService {
             String fileType = typesToUpload.get(fileName);
             String storagePath = buildStoragePath(config.getId().toString(), fileName);
 
-            supabaseStorageService.uploadFile(storagePath, entry.getValue(), fileType);
-
             File newFile = new File(config, storagePath, fileName, fileType);
             config.addFile(newFile);
             fileRepository.save(newFile);
+
+            supabaseStorageService.uploadFileAsync(storagePath, entry.getValue(), fileType);
         }
     }
 
@@ -295,12 +296,11 @@ public class ConfigServiceImpl implements ConfigService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Nahrávaný soubor se nepodařilo přečíst.", e);
         }
 
-        supabaseStorageService.uploadFile(storagePath, content, multipartFile.getContentType());
-
         File file = new File(config, storagePath, originalFileName, multipartFile.getContentType());
         config.addFile(file);
 
         File savedFile = fileRepository.save(file);
+        supabaseStorageService.uploadFileAsync(storagePath, content, multipartFile.getContentType());
         reindexConfig(config);
         return savedFile;
     }

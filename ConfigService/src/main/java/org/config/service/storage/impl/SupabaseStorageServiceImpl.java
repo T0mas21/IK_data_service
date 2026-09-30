@@ -1,10 +1,13 @@
 package org.config.service.storage.impl;
 
 import org.config.service.storage.SupabaseStorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.http.HttpMethod;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +21,7 @@ import java.util.Map;
 @Service
 public class SupabaseStorageServiceImpl implements SupabaseStorageService {
 
+    private static final Logger log = LoggerFactory.getLogger(SupabaseStorageServiceImpl.class);
     private static final int DOWNLOAD_URL_TTL_SECONDS = 60;
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
@@ -60,6 +64,16 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         }
 
         return storagePath;
+    }
+
+    @Async
+    @Override
+    public void uploadFileAsync(String storagePath, byte[] content, String contentType) {
+        try {
+            uploadFile(storagePath, content, contentType);
+        } catch (Exception e) {
+            log.warn("Asynchronní nahrání souboru {} do Supabase Storage selhalo: {}", storagePath, e.getMessage());
+        }
     }
 
     @Override

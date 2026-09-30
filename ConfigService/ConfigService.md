@@ -32,6 +32,12 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 
 Po každém create/update configu (i po přidání/smazání souboru) se volá `reindexConfig`: naskrapuje aktuální `url` přes `ScrapperServiceClient.scrapeText` (POST `${scrapper-service.url}/scrapper_api/scrape/scrape`) a pošle `customText` + naskrapovaný text + seznam souborů do `VectorServiceClient.indexConfig` (POST `${vector-service.url}/scrapper_api/vector/index`). Obě volání jsou **best-effort** - chyby se jen logují (`log.warn`), nikdy neshodí operaci nad configem.
 
+## Nahrávání obsahu souboru do Supabase Storage je asynchronní (best-effort)
+
+`createConfig`/`updateConfig`/`addFileToConfig` uloží metadata souboru (`storagePath`, `fileName`, `fileType`) do DB synchronně a hned vrátí odpověď klientovi - skutečné nahrání bajtů do Supabase Storage (`SupabaseStorageService.uploadFileAsync`, `@Async`, viz `@EnableAsync` na `ConfigService` app třídě) běží až po odpovědi na pozadí. Chyba uploadu se jen loguje (`log.warn`), nikdy nezpůsobí chybu requestu - stejný princip jako u reindexace.
+
+**Důsledek pro kontrakt:** úspěšná odpověď na create/update/upload **negarantuje**, že obsah souboru je už fyzicky v Supabase Storage - jen že metadata jsou uložená a upload byl odeslán na pozadí. Signed download URL vytvořené těsně po create/update proto teoreticky může chvíli ukazovat na ještě nenahraný soubor. Důvod je popsaný v [.claude/VyreseneProblemy.md](../.claude/VyreseneProblemy.md) - Render free tier má vlastní gateway timeout kratší než cokoliv nastavitelné na naší straně, takže synchronní upload velkého souboru uvnitř HTTP requestu riskoval 502 i s nastaveným connect/read timeoutem.
+
 ## Timeouty na odchozích HTTP volání
 
 Všechny tři outbound `RestTemplate` klienty (`SupabaseStorageServiceImpl`, `ScrapperServiceClientImpl`, `VectorServiceClientImpl`) mají explicitní connect timeout 10 s a read timeout 30 s (`setConnectTimeout`/`setReadTimeout` na `RestTemplateBuilder` v konstruktoru). Bez toho `RestTemplate` čeká na odpověď neomezeně dlouho.
