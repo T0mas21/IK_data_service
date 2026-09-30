@@ -32,9 +32,11 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 
 Po každém create/update configu (i po přidání/smazání souboru) se volá `reindexConfig`: naskrapuje aktuální `url` přes `ScrapperServiceClient.scrapeText` (POST `${scrapper-service.url}/scrapper_api/scrape/scrape`) a pošle `customText` + naskrapovaný text + seznam souborů do `VectorServiceClient.indexConfig` (POST `${vector-service.url}/scrapper_api/vector/index`). Obě volání jsou **best-effort** - chyby se jen logují (`log.warn`), nikdy neshodí operaci nad configem.
 
-## Supabase Storage - timeout
+## Timeouty na odchozích HTTP volání
 
-`SupabaseStorageServiceImpl` volá Supabase Storage přes `RestTemplate` s explicitním connect timeoutem 10 s a read timeoutem 30 s (`setConnectTimeout`/`setReadTimeout` na `RestTemplateBuilder` v konstruktoru). Bez toho `RestTemplate` čeká na odpověď neomezeně dlouho - projevovalo se to jako 502 z Cloudflare/Renderu při vytváření/editaci configu **jen když se zároveň nahrával nový soubor** (base64 `content`): appka visela na volání Supabase bez logu, dokud Cloudflare po pár sekundách spojení nezabil.
+Všechny tři outbound `RestTemplate` klienty (`SupabaseStorageServiceImpl`, `ScrapperServiceClientImpl`, `VectorServiceClientImpl`) mají explicitní connect timeout 10 s a read timeout 30 s (`setConnectTimeout`/`setReadTimeout` na `RestTemplateBuilder` v konstruktoru). Bez toho `RestTemplate` čeká na odpověď neomezeně dlouho.
+
+Tohle byla příčina opakovaných 502 z Cloudflare/Renderu při `createConfig`/`updateConfig`: appka visela na některém z odchozích volání (Supabase Storage při uploadu souboru, nebo ScrapperService/VectorService v `reindexConfig` - to druhé se volá **při každém** create/update, ne jen při uploadu souboru) bez jakéhokoli logu, dokud Cloudflare po pár sekundách spojení k Renderu nezabil. Instance přitom v Render logu ukazuje jen poslední proběhlý Hibernate dotaz (typicky `INSERT` configu) a nic dál - žádná výjimka, protože request nikdy neskončil.
 
 ## Testy
 

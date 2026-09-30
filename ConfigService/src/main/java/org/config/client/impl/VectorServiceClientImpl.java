@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,8 @@ import java.util.Map;
 public class VectorServiceClientImpl implements VectorServiceClient {
 
     private static final Logger log = LoggerFactory.getLogger(VectorServiceClientImpl.class);
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
 
     private final RestTemplate restTemplate;
 
@@ -25,7 +28,10 @@ public class VectorServiceClientImpl implements VectorServiceClient {
     private String vectorServiceUrl;
 
     public VectorServiceClientImpl(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplateBuilder
+                .setConnectTimeout(CONNECT_TIMEOUT)
+                .setReadTimeout(READ_TIMEOUT)
+                .build();
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.Map;
 
 @Service
@@ -17,6 +18,8 @@ public class ScrapperServiceClientImpl implements ScrapperServiceClient {
 
     private static final int DEFAULT_TIMEOUT_SECONDS = 10;
     private static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; ScrapperAppVectorIndexer/1.0)";
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
 
     private final RestTemplate restTemplate;
 
@@ -24,7 +27,10 @@ public class ScrapperServiceClientImpl implements ScrapperServiceClient {
     private String scrapperServiceUrl;
 
     public ScrapperServiceClientImpl(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplateBuilder
+                .setConnectTimeout(CONNECT_TIMEOUT)
+                .setReadTimeout(READ_TIMEOUT)
+                .build();
     }
 
     @Override
