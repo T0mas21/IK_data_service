@@ -32,6 +32,10 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 
 Po každém create/update configu (i po přidání/smazání souboru) se volá `reindexConfig`: naskrapuje aktuální `url` přes `ScrapperServiceClient.scrapeText` (POST `${scrapper-service.url}/scrapper_api/scrape/scrape`) a pošle `customText` + naskrapovaný text + seznam souborů do `VectorServiceClient.indexConfig` (POST `${vector-service.url}/scrapper_api/vector/index`). Obě volání jsou **best-effort** - chyby se jen logují (`log.warn`), nikdy neshodí operaci nad configem.
 
+## Supabase Storage - timeout
+
+`SupabaseStorageServiceImpl` volá Supabase Storage přes `RestTemplate` s explicitním connect timeoutem 10 s a read timeoutem 30 s (`setConnectTimeout`/`setReadTimeout` na `RestTemplateBuilder` v konstruktoru). Bez toho `RestTemplate` čeká na odpověď neomezeně dlouho - projevovalo se to jako 502 z Cloudflare/Renderu při vytváření/editaci configu **jen když se zároveň nahrával nový soubor** (base64 `content`): appka visela na volání Supabase bez logu, dokud Cloudflare po pár sekundách spojení nezabil.
+
 ## Testy
 
 JUnit 5 + Mockito, `MockitoSettings(strictness = LENIENT)`. Abstraktní `Base*Test` třídy per vrstva (`BaseConfigServiceTest`, `BaseConfigFacadeTest`, `BaseConfigApiTest`) s mocky/DI, konkrétní testovací třída per akce (`ConfigServiceCreateTest`, `ConfigServiceUpdateTest`, `ConfigServiceFileUploadTest`, ...). Testy nad repozitáři (`org.config.unit.repository`) běží nad H2 přes `@SpringBootTest` (ne čisté unit testy).

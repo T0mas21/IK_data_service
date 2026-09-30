@@ -12,12 +12,15 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 
 @Service
 public class SupabaseStorageServiceImpl implements SupabaseStorageService {
 
     private static final int DOWNLOAD_URL_TTL_SECONDS = 60;
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
 
     private final RestTemplate restTemplate;
 
@@ -31,7 +34,10 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
     private String bucket;
 
     public SupabaseStorageServiceImpl(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplateBuilder
+                .setConnectTimeout(CONNECT_TIMEOUT)
+                .setReadTimeout(READ_TIMEOUT)
+                .build();
     }
 
     @Override
