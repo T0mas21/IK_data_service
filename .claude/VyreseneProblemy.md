@@ -4,6 +4,41 @@ Log vyřešených produkčních bugů a jejich diagnostiky - ne changelog změn 
 
 ---
 
+## Upload souboru s mezerou/diakritikou v názvu tiše selhával - dvojité URL enkódování cesty
+
+**Datum:** 2026-10-01
+**Služba:** ConfigService
+
+### Příznak
+
+Config se vytvořil v pořádku (DB záznamy configu i souboru existují), ale skutečný obsah souboru se do Supabase Storage nenahrál. V logu (vidět až díky asynchronnímu uploadu, viz záznam níže - dřív by to byl synchronní 502) byla chyba:
+
+```
+Asynchronní nahrání souboru .../uuid_Navrh staze.pdf do Supabase Storage selhalo: 502 BAD_GATEWAY
+"...{"statusCode":"400","error":"InvalidKey","message":"Invalid key: .../uuid_Navrh%20staze.pdf"...}"
+```
+
+### Diagnostický postup
+
+1. **Nevěř první hypotéze jen podle toho, co "vypadá podezřele".** Mezera v názvu souboru vypadala jako viník, ale Supabase Storage mezery v klíči **povoluje** (ověřeno websearchem na skutečný regex validace v `supabase/storage` repu) - šlo by o unáhlený závěr bez ověření.
+2. **Všimni si, že chybová hláška obsahuje `%20`, ne mezeru.** To napovídá, že cesta prošla URL enkódováním ještě předtím, než ji vidělo Supabase - otázka je, kolikrát.
+3. **Projdi kód cesty od sestavení URL až po odeslání requestu.** `objectUrl()` ručně volal `UriUtils.encodePath(...)` (mezera → `%20`) a výsledek vrátil jako obyčejný `String`. Ten se pak posílal přes `RestTemplate.exchange(String url, ...)` - a tahle varianta si URL **enkóduje znovu sama** (neví, že už enkódovaná je), takže `%20` se stane `%2520`.
+4. **Porovnej s dokumentovanými zakázanými znaky.** Znak `%` je u Supabase Storage na seznamu zakázaných znaků v klíči - `%2520` tedy obsahuje doslovné `%`, které validace odmítne jako `InvalidKey`. Sedí to přesně na pozorovanou chybu.
+
+### Kořenová příčina
+
+`SupabaseStorageServiceImpl` enkódoval cestu k souboru ručně (`UriUtils.encodePath`) a pak ji poslal jako `String` do `RestTemplate.exchange(String url, ...)`, která cestu enkóduje podruhé - výsledný klíč obsahoval dvojitě enkódované znaky (`%2520` místo `%20`), což Supabase odmítla kvůli zakázanému znaku `%`.
+
+### Oprava
+
+Cesta se teď sestavuje přes `UriComponentsBuilder` a enkóduje se **přesně jednou** (`.build().encode(UTF_8).toUri()`), výsledek je rovnou `java.net.URI` objekt. Volá se přes `RestTemplate.exchange(URI, ...)` přetížení, které už enkódovanou `URI` znovu neenkóduje. Test: ověřit na konkrétních vstupech (mezera, diakritika, víceúrovňová cesta), že výsledné URI obsahuje `%20`/`%C5%BE` přesně jednou a nikdy ne `%25` (= dvojité enkódování).
+
+### Poučení do budoucna
+
+Nikdy nekombinovat ruční URL enkódování (`UriUtils.encodePath` a podobné) s `RestTemplate`/`UriComponentsBuilder` metodami, které berou `String` URL - ty si enkódují samy. Buď enkóduj ručně a pošli jako `URI` objekt (přes `exchange(URI, ...)`), nebo nech enkódování úplně na `UriComponentsBuilder`/`RestTemplate` a posílej neenkódovaný vstup. Nikdy obojí najednou.
+
+---
+
 ## 502 přetrvávalo i po nastavení timeoutu - Render free tier má vlastní (kratší) gateway timeout
 
 **Datum:** 2026-09-30

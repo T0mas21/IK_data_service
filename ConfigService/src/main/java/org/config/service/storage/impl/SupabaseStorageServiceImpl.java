@@ -12,8 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.UriUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         HttpEntity<byte[]> request = new HttpEntity<>(content, headers);
 
         try {
-            restTemplate.exchange(objectUrl(storagePath), HttpMethod.POST, request, String.class);
+            restTemplate.exchange(objectUri(storagePath), HttpMethod.POST, request, String.class);
         } catch (HttpClientErrorException e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
@@ -81,7 +82,7 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         HttpEntity<Void> request = new HttpEntity<>(buildAuthHeaders());
 
         try {
-            restTemplate.exchange(objectUrl(storagePath), HttpMethod.DELETE, request, String.class);
+            restTemplate.exchange(objectUri(storagePath), HttpMethod.DELETE, request, String.class);
         } catch (HttpClientErrorException.NotFound ignored) {
             // soubor v Supabase Storage už neexistuje
         } catch (HttpClientErrorException e) {
@@ -101,7 +102,7 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
 
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
-                    signUploadUrl(storagePath), HttpMethod.POST, request, Map.class);
+                    signUploadUri(storagePath), HttpMethod.POST, request, Map.class);
 
             Object token = response.getBody() != null ? response.getBody().get("token") : null;
             if (token == null) {
@@ -111,7 +112,7 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
                 );
             }
 
-            return signUploadUrl(storagePath) + "?token=" + token;
+            return signUploadUri(storagePath) + "?token=" + token;
         } catch (HttpClientErrorException e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
@@ -129,7 +130,7 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
 
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
-                    signDownloadUrl(storagePath), HttpMethod.POST, request, Map.class);
+                    signDownloadUri(storagePath), HttpMethod.POST, request, Map.class);
 
             Object signedUrl = response.getBody() != null ? response.getBody().get("signedURL") : null;
             if (signedUrl == null) {
@@ -151,19 +152,32 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         }
     }
 
-    private String objectUrl(String storagePath) {
-        String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
-        return supabaseUrl + "/storage/v1/object/" + bucket + "/" + encodedPath;
+    /**
+     * Sestaví a rovnou enkóduje URI na objekt v Supabase Storage - {@code storagePath} se do
+     * {@link UriComponentsBuilder} předává neenkódovaný a enkóduje se přesně jednou (viz
+     * {@link #buildUri}). Použij vždy přes {@code exchange(URI, ...)} přetížení RestTemplate,
+     * NE přes variantu se {@code String} URL - ta by enkódovaný výsledek enkódovala podruhé
+     * (např. mezera " " → "%20" → "%2520"), což Supabase odmítne jako InvalidKey (znak "%"
+     * je v klíči zakázaný).
+     */
+    URI objectUri(String storagePath) {
+        return buildUri("/storage/v1/object/" + bucket + "/" + storagePath);
     }
 
-    private String signUploadUrl(String storagePath) {
-        String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
-        return supabaseUrl + "/storage/v1/object/upload/sign/" + bucket + "/" + encodedPath;
+    URI signUploadUri(String storagePath) {
+        return buildUri("/storage/v1/object/upload/sign/" + bucket + "/" + storagePath);
     }
 
-    private String signDownloadUrl(String storagePath) {
-        String encodedPath = UriUtils.encodePath(storagePath, StandardCharsets.UTF_8);
-        return supabaseUrl + "/storage/v1/object/sign/" + bucket + "/" + encodedPath;
+    URI signDownloadUri(String storagePath) {
+        return buildUri("/storage/v1/object/sign/" + bucket + "/" + storagePath);
+    }
+
+    private URI buildUri(String path) {
+        return UriComponentsBuilder.fromHttpUrl(supabaseUrl)
+                .path(path)
+                .build()
+                .encode(StandardCharsets.UTF_8)
+                .toUri();
     }
 
     private HttpHeaders buildAuthHeaders() {
