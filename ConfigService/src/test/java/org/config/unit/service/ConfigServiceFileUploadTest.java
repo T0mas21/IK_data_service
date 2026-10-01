@@ -53,7 +53,7 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         verify(scrapperServiceClient, times(1))
                 .scrapeText("https://example.com", 10, "Mozilla/5.0");
         verify(vectorServiceClient, times(1))
-                .indexConfig(eq(1L), eq("nejaky text"), eq("naskrapovany text"), anyList());
+                .indexConfig(eq(1L), eq("nejaky text"), eq("naskrapovany text"), any(), anyList());
     }
 
     @Test
@@ -102,7 +102,7 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         // v tomto kroku se ještě nic neukládá do DB ani nenahrávají bajty
         verify(fileRepository, never()).save(any());
         verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
-        verify(vectorServiceClient, never()).indexConfig(any(), any(), any(), any());
+        verify(vectorServiceClient, never()).indexConfig(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -177,7 +177,56 @@ class ConfigServiceFileUploadTest extends BaseConfigServiceTest {
         // bajty souboru už jsou ve Storage nahrané klientem přímo - appka je znovu neposílá
         verify(supabaseStorageService, never()).uploadFile(anyString(), any(), anyString());
         verify(fileRepository, times(1)).save(any(File.class));
-        verify(vectorServiceClient, times(1)).indexConfig(eq(1L), eq("text"), any(), anyList());
+        verify(vectorServiceClient, times(1)).indexConfig(eq(1L), eq("text"), any(), any(), anyList());
+    }
+
+    @Test
+    void registerFile_UsesWebText_InsteadOfAutoScraping_WhenWebTextProvided() {
+        Config config = new Config();
+        config.setId(1L);
+        config.setCustomText("text");
+        config.setUrl("https://example.com");
+        config.setWebText("uz naskrapovany text od klienta");
+
+        when(configRepository.findByIdWithFiles(1L)).thenReturn(Optional.of(config));
+        when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        configService.registerFile(1L, "configs/1/uuid_smlouva.pdf", "smlouva.pdf", "application/pdf");
+
+        verify(scrapperServiceClient, never()).scrapeText(any(), any(), any());
+        verify(vectorServiceClient).indexConfig(eq(1L), eq("text"), eq("uz naskrapovany text od klienta"), any(), anyList());
+    }
+
+    @Test
+    void registerFile_FallsBackToAutoScraping_WhenWebTextMissing() {
+        Config config = new Config();
+        config.setId(1L);
+        config.setUrl("https://example.com");
+        config.setTimeout(10);
+        config.setUserAgent("Mozilla/5.0");
+
+        when(configRepository.findByIdWithFiles(1L)).thenReturn(Optional.of(config));
+        when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(scrapperServiceClient.scrapeText("https://example.com", 10, "Mozilla/5.0")).thenReturn("automaticky naskrapovano");
+
+        configService.registerFile(1L, "configs/1/uuid_smlouva.pdf", "smlouva.pdf", "application/pdf");
+
+        verify(scrapperServiceClient).scrapeText("https://example.com", 10, "Mozilla/5.0");
+        verify(vectorServiceClient).indexConfig(eq(1L), any(), eq("automaticky naskrapovano"), any(), anyList());
+    }
+
+    @Test
+    void registerFile_PassesTablesThroughToIndexConfig() {
+        Config config = new Config();
+        config.setId(1L);
+        config.setTables("[{\"table\":{\"columns\":[],\"row\":[]}}]");
+
+        when(configRepository.findByIdWithFiles(1L)).thenReturn(Optional.of(config));
+        when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        configService.registerFile(1L, "configs/1/uuid_smlouva.pdf", "smlouva.pdf", "application/pdf");
+
+        verify(vectorServiceClient).indexConfig(eq(1L), any(), any(), eq("[{\"table\":{\"columns\":[],\"row\":[]}}]"), anyList());
     }
 
     @Test

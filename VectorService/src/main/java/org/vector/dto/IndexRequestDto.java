@@ -10,6 +10,8 @@ public record IndexRequestDto(
         Long configId,
         String customText,
         String scrapedText,
+        /** Syrový JSON ve formátu scraperova pole "tables" ({@code [{"table": {"columns": [...], "row": [...]}}]}). */
+        String tables,
         @Valid
         List<FileRefDto> files
 ) {}

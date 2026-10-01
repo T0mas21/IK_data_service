@@ -20,6 +20,8 @@ class ConfigFacadeCreateTest extends BaseConfigFacadeTest {
                 "Mozilla/5.0",
                 "https://example.com",
                 null,
+                null,
+                null,
                 List.of()
         );
 
@@ -44,6 +46,8 @@ class ConfigFacadeCreateTest extends BaseConfigFacadeTest {
                 5000,
                 "Mozilla/5.0",
                 "https://example.com",
+                null,
+                null,
                 null,
                 List.of()
         );

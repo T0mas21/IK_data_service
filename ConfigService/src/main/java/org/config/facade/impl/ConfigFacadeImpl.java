@@ -65,6 +65,8 @@ public class ConfigFacadeImpl implements ConfigFacade {
                 createdDto.userAgent(),
                 createdDto.url(),
                 createdDto.customText(),
+                createdDto.webText(),
+                createdDto.tables(),
                 uploadedFiles
         );
     }

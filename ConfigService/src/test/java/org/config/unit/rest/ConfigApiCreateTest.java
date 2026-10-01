@@ -21,6 +21,8 @@ class ConfigApiCreateTest extends BaseConfigApiTest {
                 "Mozilla/5.0",
                 "https://example.com",
                 null,
+                null,
+                null,
                 List.of()
         );
 
@@ -30,6 +32,8 @@ class ConfigApiCreateTest extends BaseConfigApiTest {
                 5000,
                 "Mozilla/5.0",
                 "https://example.com",
+                null,
+                null,
                 null,
                 List.of()
         );

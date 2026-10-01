@@ -35,7 +35,7 @@ public class VectorServiceClientImpl implements VectorServiceClient {
     }
 
     @Override
-    public void indexConfig(Long configId, String customText, String scrapedText, List<File> files) {
+    public void indexConfig(Long configId, String customText, String scrapedText, String tables, List<File> files) {
         List<Map<String, Object>> fileRefs = files == null ? List.of() : files.stream()
                 .map(f -> Map.<String, Object>of(
                         "fileId", f.getId(),
@@ -49,6 +49,7 @@ public class VectorServiceClientImpl implements VectorServiceClient {
                 "configId", configId,
                 "customText", customText != null ? customText : "",
                 "scrapedText", scrapedText != null ? scrapedText : "",
+                "tables", tables != null ? tables : "",
                 "files", fileRefs
         );
 

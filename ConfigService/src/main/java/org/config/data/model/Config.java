@@ -34,6 +34,13 @@ public class Config {
     @Column(name = "`customText`", columnDefinition = "TEXT")
     private String customText;
 
+    @Column(columnDefinition = "TEXT")
+    private String webText;
+
+    /** Syrový JSON ve formátu, jaký vrací ScrapperService pro strategii EXTRACT_TABLES (pole "tables"). */
+    @Column(columnDefinition = "TEXT")
+    private String tables;
+
     @OneToMany(mappedBy = "config", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<File> files = new ArrayList<>();
 
@@ -123,6 +130,22 @@ public class Config {
 
     public void setCustomText(String customText) {
         this.customText = customText;
+    }
+
+    public String getWebText() {
+        return webText;
+    }
+
+    public void setWebText(String webText) {
+        this.webText = webText;
+    }
+
+    public String getTables() {
+        return tables;
+    }
+
+    public void setTables(String tables) {
+        this.tables = tables;
     }
 
     public List<File> getFiles() {

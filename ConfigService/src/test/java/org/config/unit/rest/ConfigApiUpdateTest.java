@@ -22,6 +22,8 @@ class ConfigApiUpdateTest extends BaseConfigApiTest {
                 "Mozilla/5.0",
                 "https://example.com",
                 null,
+                null,
+                null,
                 List.of()
         );
 

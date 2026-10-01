@@ -24,6 +24,8 @@ class ConfigApiGetTest extends BaseConfigApiTest {
                 "Mozilla/5.0",
                 "https://example.com",
                 null,
+                null,
+                null,
                 List.of()
         );
 
@@ -65,8 +67,8 @@ class ConfigApiGetTest extends BaseConfigApiTest {
     @Test
     void getAll_ShouldReturn200OKAndListOfConfigs() {
         List<ConfigDto> configs = List.of(
-                new ConfigDto("config1", "Popis 1", 1000, "Agent 1", "https://example1.com", null, List.of()),
-                new ConfigDto("config2", "Popis 2", 2000, "Agent 2", "https://example2.com", null, List.of())
+                new ConfigDto("config1", "Popis 1", 1000, "Agent 1", "https://example1.com", null, null, null, List.of()),
+                new ConfigDto("config2", "Popis 2", 2000, "Agent 2", "https://example2.com", null, null, null, List.of())
         );
         when(configFacade.findAll()).thenReturn(configs);
 

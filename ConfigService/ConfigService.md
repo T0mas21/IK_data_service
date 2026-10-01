@@ -10,9 +10,9 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 
 ## Datový model
 
-- `Config` (tabulka `configs`): `id`, `name` (unikátní, povinné), `description`, `timeout` (>= 0), `userAgent`, `url`, `customText`, `files` (`@OneToMany`, `cascade = ALL`, `orphanRemoval = true`), `createdAt`/`updatedAt`.
+- `Config` (tabulka `configs`): `id`, `name` (unikátní, povinné), `description`, `timeout` (>= 0), `userAgent`, `url`, `customText`, `webText`, `tables` (viz níže), `files` (`@OneToMany`, `cascade = ALL`, `orphanRemoval = true`), `createdAt`/`updatedAt`.
 - `File` (tabulka `config_files`, unique `(config_id, file_name)`): `id`, `storagePath`, `fileName`, `fileType`, `createdAt`. **Neobsahuje binární obsah** - ten je v Supabase Storage, DB drží jen metadata.
-- `ConfigDto`: `name`, `description`, `timeout`, `userAgent`, `url`, `customText`, `files: List<FileDto>`.
+- `ConfigDto`: `name`, `description`, `timeout`, `userAgent`, `url`, `customText`, `webText`, `tables: List<Map<String, Object>>`, `files: List<FileDto>`.
 - `FileDto`: `id`, `fileName`, `storagePath`, `fileType`, `content` (base64, nullable).
 
 ## Práce se soubory - klíčový kontrakt
@@ -30,7 +30,20 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 
 ## Reindexace
 
-Po každém create/update configu (i po přidání/smazání souboru) se volá `reindexConfig`: naskrapuje aktuální `url` přes `ScrapperServiceClient.scrapeText` (POST `${scrapper-service.url}/scrapper_api/scrape/scrape`) a pošle `customText` + naskrapovaný text + seznam souborů do `VectorServiceClient.indexConfig` (POST `${vector-service.url}/scrapper_api/vector/index`). Obě volání jsou **best-effort** - chyby se jen logují (`log.warn`), nikdy neshodí operaci nad configem.
+Po každém create/update configu (i po přidání/smazání souboru) se volá `reindexConfig`: pošle `customText` + text webové stránky + tabulky z webu + seznam souborů do `VectorServiceClient.indexConfig` (POST `${vector-service.url}/scrapper_api/vector/index`). Text webové stránky se získá takto:
+
+- pokud klient v requestu vyplnil `webText` (sám si stránku naskrapoval, případně dal uživateli možnost výsledek upravit/vybrat), použije se **přímo** - `ScrapperService` se vůbec nevolá;
+- jinak (zpětná kompatibilita se staršími configy) se dorovná automatickým scrapováním přes `ScrapperServiceClient.scrapeText` (POST `${scrapper-service.url}/scrapper_api/scrape/scrape`, strategie `EXTRACT_TEXT`) na `url` daného configu.
+
+Obě volání (scraper i vector indexace) jsou **best-effort** - chyby se jen logují (`log.warn`), nikdy neshodí operaci nad configem.
+
+### Soubory a tabulky z webu - kdo co dělá
+
+ConfigService **sám o sobě nescrapuje soubory ani tabulky z webové stránky** - to dělá klient (typicky integrace Metada) ještě před voláním create/update, pomocí `ScrapperService` strategií `DOWNLOAD_FILE`/`EXTRACT_TABLES` (viz `ScrapperService.md`), s možností u uživatele vybrat/smazat nalezené položky. Teprve výsledek se pošle do ConfigService:
+
+- **soubory z webu** se posílají úplně stejně jako ručně nahrané soubory - přes stávající `files: List<FileDto>` s vyplněným `content` (base64), žádná nová API cesta.
+- **tabulky z webu** se posílají v poli `tables` v **přesně stejném formátu**, jaký vrací `ScrapperService` pro strategii `EXTRACT_TABLES` (pole `tables` z jeho odpovědi - seznam `{"table": {"columns": [...], "row": [...]}}`, viz `ScrapperService.md`). V DB se ukládá jako serializovaný JSON text (`Config.tables`, sloupec `TEXT`) a stejný syrový JSON se posílá dál do `VectorServiceClient.indexConfig` jako pole `tables` - VectorService si ho sám parsuje a převádí na čitelný text pro indexaci (viz `VectorService.md`).
+- **text webové stránky** se posílá v poli `webText` (viz výše) - typicky stejný text, který klient dostal z `ScrapperService` strategie `EXTRACT_TEXT`.
 
 ## Nahrávání obsahu souboru do Supabase Storage je asynchronní (best-effort)
 

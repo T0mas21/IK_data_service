@@ -47,7 +47,7 @@ public class ConfigApi {
             @RequestParam(required = false) String url,
             @RequestParam(required = false) String customText,
             @RequestParam(required = false) List<MultipartFile> files) {
-        ConfigDto configDto = new ConfigDto(name, description, timeout, userAgent, url, customText, List.of());
+        ConfigDto configDto = new ConfigDto(name, description, timeout, userAgent, url, customText, null, null, List.of());
         ConfigDto created = configFacade.createConfig(configDto, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

@@ -183,6 +183,8 @@ public class ConfigServiceImpl implements ConfigService {
         existingConfig.setUserAgent(updatedConfig.getUserAgent());
         existingConfig.setUrl(updatedConfig.getUrl());
         existingConfig.setCustomText(updatedConfig.getCustomText());
+        existingConfig.setWebText(updatedConfig.getWebText());
+        existingConfig.setTables(updatedConfig.getTables());
 
         syncFiles(existingConfig, requestedFiles);
 
@@ -407,12 +409,16 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     /**
-     * Best-effort přeindexování configu ve Vector službě: naskrapuje aktuální url (pokud je vyplněná)
-     * a spolu s custom textem a aktuálním seznamem souborů pošle k zaindexování. Chyby se pouze logují
+     * Best-effort přeindexování configu ve Vector službě: pokud klient už poslal {@code webText}
+     * (sám naskrapovaný text stránky), použije se přímo - jinak se dorovná automatickým scrapováním
+     * přes {@code url} (zpětná kompatibilita se staršími configy bez webText). Spolu s custom textem,
+     * tabulkami z webu a aktuálním seznamem souborů se pošle k zaindexování. Chyby se pouze logují
      * (viz {@link ScrapperServiceClient} a {@link VectorServiceClient}) a nesmí shodit operaci nad configem.
      */
     private void reindexConfig(Config config) {
-        String scrapedText = scrapperServiceClient.scrapeText(config.getUrl(), config.getTimeout(), config.getUserAgent());
-        vectorServiceClient.indexConfig(config.getId(), config.getCustomText(), scrapedText, config.getFiles());
+        String scrapedText = config.getWebText() != null && !config.getWebText().isBlank()
+                ? config.getWebText()
+                : scrapperServiceClient.scrapeText(config.getUrl(), config.getTimeout(), config.getUserAgent());
+        vectorServiceClient.indexConfig(config.getId(), config.getCustomText(), scrapedText, config.getTables(), config.getFiles());
     }
 }
