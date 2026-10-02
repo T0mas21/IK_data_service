@@ -21,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +75,8 @@ public class ConfigServiceImpl implements ConfigService {
             );
         }
 
+        validateNoDuplicateFileNames(requestedFiles);
+
         List<FileDto> preUploaded = new ArrayList<>();
         List<NewFileUpload> toUpload = new ArrayList<>();
         splitFilesForCreate(requestedFiles, preUploaded, toUpload);
@@ -99,6 +102,29 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     private record NewFileUpload(String fileName, String fileType, byte[] content) {}
+
+    /**
+     * Požadavek nesmí obsahovat dva záznamy se stejným {@code fileName} - ani create, ani update
+     * by v takovém případě neměly nic uložit/změnit. Nahrazení existujícího souboru stejného jména
+     * novým obsahem (jeden záznam v requestu, který odpovídá souboru už uloženému u configu) tohle
+     * neovlivňuje - to zůstává platný "replace" flow (viz {@link #syncFiles}).
+     */
+    private void validateNoDuplicateFileNames(List<FileDto> requestedFiles) {
+        if (requestedFiles == null) {
+            return;
+        }
+
+        Set<String> seen = new HashSet<>();
+        for (FileDto fileDto : requestedFiles) {
+            String fileName = fileDto.fileName();
+            if (fileName != null && !seen.add(fileName)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Soubor '" + fileName + "' je v požadavku uveden vícekrát."
+                );
+            }
+        }
+    }
 
     /**
      * Rozdělí požadované soubory na (a) už dříve nahrané přímo do Supabase Storage přes signed
@@ -203,6 +229,8 @@ public class ConfigServiceImpl implements ConfigService {
         if (requestedFiles == null) {
             return;
         }
+
+        validateNoDuplicateFileNames(requestedFiles);
 
         Set<String> existingNames = config.getFiles().stream()
                 .map(File::getFileName)

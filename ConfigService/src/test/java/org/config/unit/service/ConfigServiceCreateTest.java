@@ -186,4 +186,25 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(configRepository, never()).save(any());
     }
+
+    @Test
+    void createConfig_ThrowsException_WhenDuplicateFileNamesInRequest() {
+        Config config = new Config();
+        config.setName("config_with_duplicate_files");
+
+        String base64Content = Base64.getEncoder().encodeToString("obsah souboru".getBytes());
+        FileDto file1 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto file2 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+
+        when(configRepository.findByName("config_with_duplicate_files")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.createConfig(config, List.of(file1, file2))
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(configRepository, never()).save(any());
+        verify(fileRepository, never()).save(any());
+    }
 }

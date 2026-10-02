@@ -203,4 +203,50 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(fileRepository, never()).save(any());
     }
+
+    @Test
+    void updateConfig_ThrowsException_WhenDuplicateFileNamesInRequest() {
+        String name = "my_config";
+        Config existingConfig = new Config();
+        existingConfig.setId(1L);
+        existingConfig.setName(name);
+
+        String base64Content = Base64.getEncoder().encodeToString("obsah souboru".getBytes());
+        FileDto file1 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto file2 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+
+        when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.updateConfig(name, new Config(), List.of(file1, file2))
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(fileRepository, never()).save(any());
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
+        verify(supabaseStorageService, never()).deleteFile(anyString());
+    }
+
+    @Test
+    void updateConfig_StillReplacesExistingFile_WhenRequestHasNoDuplicates() {
+        String name = "my_config";
+        Config existingConfig = new Config();
+        existingConfig.setId(1L);
+        existingConfig.setName(name);
+        File oldFile = new File(existingConfig, "configs/1/old_smlouva.pdf", "smlouva.pdf", "application/pdf");
+        existingConfig.addFile(oldFile);
+
+        String base64Content = Base64.getEncoder().encodeToString("novy obsah".getBytes());
+        FileDto replacementFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+
+        when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
+        when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Config result = configService.updateConfig(name, new Config(), List.of(replacementFile));
+
+        assertEquals(1, result.getFiles().size());
+        verify(supabaseStorageService).deleteFile("configs/1/old_smlouva.pdf");
+        verify(supabaseStorageService).uploadFileAsync(anyString(), any(byte[].class), eq("application/pdf"));
+    }
 }

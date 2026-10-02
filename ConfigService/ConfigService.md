@@ -26,6 +26,7 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 
 - **Create**: `files` může kombinovat oba flow (staré `storagePath` i nové `content`) v jednom požadavku. Soubor musí mít vždy buď `content`, nebo `storagePath` (jinak 400). Config se nejdřív uloží (kvůli DB id), teprve pak se base64 soubory nahrají a připojí.
 - **Edit**: `files` reprezentuje **kompletní požadovaný seznam** souborů configu - záznam bez `content` musí odpovídat existujícímu souboru (jinak 400, "beze změny"); záznam s `content` u shodného `fileName` **nahradí** starý obsah (smaže starý soubor ze storage i DB, nahraje nový); existující soubory, které v požadavku vůbec nejsou, se **smažou**. `requestedFiles == null` znamená "soubory vůbec needitovat".
+- **Validace duplicit**: pokud `files` v jednom requestu (create i edit) obsahuje dva záznamy se **stejným `fileName`**, vrátí se 400 a nic se neuloží/nezmění (`ConfigServiceImpl.validateNoDuplicateFileNames`, volá se před jakoukoli mutací). Netýká se to legitimního nahrazení existujícího souboru (jeden záznam v requestu odpovídající souboru, co už u configu je) - to zůstává validní "replace".
 - Existuje i multipart create (`POST /scrapper_api/config`, `multipart/form-data`) a přímé file-endpointy (`POST/DELETE /{configId}/files`) pro editaci souborů mimo tento JSON kontrakt.
 
 ## Reindexace
