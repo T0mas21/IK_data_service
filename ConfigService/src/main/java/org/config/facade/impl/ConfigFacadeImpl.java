@@ -97,7 +97,8 @@ public class ConfigFacadeImpl implements ConfigFacade {
                             file.fileName(),
                             file.storagePath(),
                             file.fileType(),
-                            content != null ? Base64.getEncoder().encodeToString(content) : null
+                            content != null ? Base64.getEncoder().encodeToString(content) : null,
+                            null
                     );
                 })
                 .toList();

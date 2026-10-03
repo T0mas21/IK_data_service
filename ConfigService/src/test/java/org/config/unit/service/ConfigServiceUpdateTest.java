@@ -88,7 +88,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         existingConfig.setName(name);
 
         String base64Content = Base64.getEncoder().encodeToString("obsah souboru".getBytes());
-        FileDto newFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto newFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -111,7 +111,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         existingConfig.addFile(oldFile);
 
         String base64Content = Base64.getEncoder().encodeToString("novy obsah".getBytes());
-        FileDto replacementFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto replacementFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -133,7 +133,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         File oldFile = new File(existingConfig, "configs/1/old_smlouva.pdf", "smlouva.pdf", "application/pdf");
         existingConfig.addFile(oldFile);
 
-        FileDto keptFile = new FileDto(null, "smlouva.pdf", null, null, null);
+        FileDto keptFile = new FileDto(null, "smlouva.pdf", null, null, null, null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
 
@@ -171,7 +171,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         existingConfig.setId(1L);
         existingConfig.setName(name);
 
-        FileDto unknownFile = new FileDto(null, "neexistujici.pdf", null, null, null);
+        FileDto unknownFile = new FileDto(null, "neexistujici.pdf", null, null, null, null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
 
@@ -191,7 +191,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         existingConfig.setId(1L);
         existingConfig.setName(name);
 
-        FileDto invalidFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", "not-valid-base64!@#");
+        FileDto invalidFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", "not-valid-base64!@#", null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
 
@@ -212,8 +212,8 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         existingConfig.setName(name);
 
         String base64Content = Base64.getEncoder().encodeToString("obsah souboru".getBytes());
-        FileDto file1 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
-        FileDto file2 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto file1 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
+        FileDto file2 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
 
@@ -238,7 +238,7 @@ class ConfigServiceUpdateTest extends BaseConfigServiceTest {
         existingConfig.addFile(oldFile);
 
         String base64Content = Base64.getEncoder().encodeToString("novy obsah".getBytes());
-        FileDto replacementFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto replacementFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
 
         when(configRepository.findByNameWithFiles(name)).thenReturn(Optional.of(existingConfig));
         when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));

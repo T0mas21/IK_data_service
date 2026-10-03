@@ -12,6 +12,7 @@ import org.config.dto.FileDto;
 import org.config.dto.UploadUrlDto;
 import org.config.service.ConfigService;
 import org.config.service.storage.SupabaseStorageService;
+import org.config.service.webfile.WebFileDownloadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,17 +43,20 @@ public class ConfigServiceImpl implements ConfigService {
     private final SupabaseStorageService supabaseStorageService;
     private final ScrapperServiceClient scrapperServiceClient;
     private final VectorServiceClient vectorServiceClient;
+    private final WebFileDownloadService webFileDownloadService;
 
     @Autowired
     public ConfigServiceImpl(ConfigRepository configRepository, FileRepository fileRepository,
                               SupabaseStorageService supabaseStorageService,
                               ScrapperServiceClient scrapperServiceClient,
-                              VectorServiceClient vectorServiceClient) {
+                              VectorServiceClient vectorServiceClient,
+                              WebFileDownloadService webFileDownloadService) {
         this.configRepository = configRepository;
         this.fileRepository = fileRepository;
         this.supabaseStorageService = supabaseStorageService;
         this.scrapperServiceClient = scrapperServiceClient;
         this.vectorServiceClient = vectorServiceClient;
+        this.webFileDownloadService = webFileDownloadService;
     }
 
     @Override
@@ -83,7 +87,8 @@ public class ConfigServiceImpl implements ConfigService {
 
         List<FileDto> preUploaded = new ArrayList<>();
         List<NewFileUpload> toUpload = new ArrayList<>();
-        splitFilesForCreate(requestedFiles, preUploaded, toUpload);
+        List<FileDto> toDownloadFromWeb = new ArrayList<>();
+        splitFilesForCreate(requestedFiles, preUploaded, toUpload, toDownloadFromWeb);
 
         for (FileDto fileDto : preUploaded) {
             newConfig.addFile(new File(newConfig, fileDto.storagePath(), fileDto.fileName(), fileDto.fileType()));
@@ -99,6 +104,16 @@ public class ConfigServiceImpl implements ConfigService {
             fileRepository.save(newFile);
 
             supabaseStorageService.uploadFileAsync(storagePath, upload.content(), upload.fileType());
+        }
+
+        for (FileDto fileDto : toDownloadFromWeb) {
+            String storagePath = buildStoragePath(savedConfig.getId().toString(), fileDto.fileName());
+
+            File newFile = new File(savedConfig, storagePath, fileDto.fileName(), fileDto.fileType());
+            savedConfig.addFile(newFile);
+            fileRepository.save(newFile);
+
+            webFileDownloadService.downloadAndStoreAsync(storagePath, fileDto.sourceUrl(), fileDto.fileType());
         }
 
         reindexConfig(savedConfig);
@@ -133,11 +148,15 @@ public class ConfigServiceImpl implements ConfigService {
     /**
      * Rozdělí požadované soubory na (a) už dříve nahrané přímo do Supabase Storage přes signed
      * upload URL (viz {@link #createUploadUrlForNewConfig}) — identifikované vyplněným
-     * {@code storagePath} — a (b) nové soubory poslané jako base64 v {@code content}, které se
+     * {@code storagePath} — (b) nové soubory poslané jako base64 v {@code content}, které se
      * nahrají do Supabase Storage až po uložení configu (cesta v úložišti se odvozuje z jeho id,
-     * které do té doby neexistuje).
+     * které do té doby neexistuje), a (c) soubory s vyplněným {@code sourceUrl} - server si jejich
+     * obsah sám stáhne a nahraje do Supabase Storage asynchronně na pozadí (viz
+     * {@link WebFileDownloadService}), typicky odkazy na soubory nalezené scraperem na webové
+     * stránce, které klient jen přepošle dál beze stažení.
      */
-    private void splitFilesForCreate(List<FileDto> requestedFiles, List<FileDto> preUploaded, List<NewFileUpload> toUpload) {
+    private void splitFilesForCreate(List<FileDto> requestedFiles, List<FileDto> preUploaded,
+                                      List<NewFileUpload> toUpload, List<FileDto> toDownloadFromWeb) {
         if (requestedFiles == null) {
             return;
         }
@@ -149,6 +168,7 @@ public class ConfigServiceImpl implements ConfigService {
 
             boolean hasContent = fileDto.content() != null && !fileDto.content().isBlank();
             boolean hasStoragePath = fileDto.storagePath() != null && !fileDto.storagePath().isBlank();
+            boolean hasSourceUrl = fileDto.sourceUrl() != null && !fileDto.sourceUrl().isBlank();
 
             if (hasContent) {
                 byte[] decoded;
@@ -163,11 +183,14 @@ public class ConfigServiceImpl implements ConfigService {
                 toUpload.add(new NewFileUpload(fileDto.fileName(), fileDto.fileType(), decoded));
             } else if (hasStoragePath) {
                 preUploaded.add(fileDto);
+            } else if (hasSourceUrl) {
+                toDownloadFromWeb.add(fileDto);
             } else {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Soubor '" + fileDto.fileName() + "' musí mít buď 'content' (base64) k nahrání, "
-                                + "nebo už vyplněný 'storagePath' z předchozího nahrání přes /upload-url."
+                                + "'sourceUrl' ke stažení serverem, nebo už vyplněný 'storagePath' "
+                                + "z předchozího nahrání přes /upload-url."
                 );
             }
         }

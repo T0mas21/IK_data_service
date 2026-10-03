@@ -95,7 +95,7 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         Config config = new Config();
         config.setName("config_with_files");
 
-        FileDto preUploadedFile = new FileDto(null, "smlouva.pdf", "configs/config_with_files/uuid_smlouva.pdf", "application/pdf", null);
+        FileDto preUploadedFile = new FileDto(null, "smlouva.pdf", "configs/config_with_files/uuid_smlouva.pdf", "application/pdf", null, null);
 
         when(configRepository.findByName("config_with_files")).thenReturn(Optional.empty());
         when(configRepository.save(any(Config.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -119,7 +119,7 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         savedConfig.setName("config_with_base64_file");
 
         String base64Content = Base64.getEncoder().encodeToString("obsah souboru".getBytes());
-        FileDto newFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto newFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
 
         when(configRepository.findByName("config_with_base64_file")).thenReturn(Optional.empty());
         when(configRepository.save(any(Config.class))).thenReturn(savedConfig);
@@ -138,7 +138,7 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         Config config = new Config();
         config.setName("config_with_bad_file");
 
-        FileDto badFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", null);
+        FileDto badFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", null, null);
 
         when(configRepository.findByName("config_with_bad_file")).thenReturn(Optional.empty());
 
@@ -156,7 +156,7 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         Config config = new Config();
         config.setName("config_with_bad_file");
 
-        FileDto badFile = new FileDto(null, "  ", "configs/config_with_bad_file/uuid.pdf", "application/pdf", null);
+        FileDto badFile = new FileDto(null, "  ", "configs/config_with_bad_file/uuid.pdf", "application/pdf", null, null);
 
         when(configRepository.findByName("config_with_bad_file")).thenReturn(Optional.empty());
 
@@ -174,7 +174,7 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         Config config = new Config();
         config.setName("config_with_bad_file");
 
-        FileDto badFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", "not-valid-base64!@#");
+        FileDto badFile = new FileDto(null, "smlouva.pdf", null, "application/pdf", "not-valid-base64!@#", null);
 
         when(configRepository.findByName("config_with_bad_file")).thenReturn(Optional.empty());
 
@@ -193,8 +193,8 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         config.setName("config_with_duplicate_files");
 
         String base64Content = Base64.getEncoder().encodeToString("obsah souboru".getBytes());
-        FileDto file1 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
-        FileDto file2 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content);
+        FileDto file1 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
+        FileDto file2 = new FileDto(null, "smlouva.pdf", null, "application/pdf", base64Content, null);
 
         when(configRepository.findByName("config_with_duplicate_files")).thenReturn(Optional.empty());
 
@@ -206,5 +206,34 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(configRepository, never()).save(any());
         verify(fileRepository, never()).save(any());
+    }
+
+    @Test
+    void createConfig_DownloadsFileFromWeb_WhenSourceUrlProvided() {
+        Config config = new Config();
+        config.setName("config_with_web_file");
+
+        Config savedConfig = new Config();
+        savedConfig.setId(1L);
+        savedConfig.setName("config_with_web_file");
+
+        FileDto webFile = new FileDto(null, "priloha.pdf", null, "application/pdf", null, "https://example.com/priloha.pdf");
+
+        when(configRepository.findByName("config_with_web_file")).thenReturn(Optional.empty());
+        when(configRepository.save(any(Config.class))).thenReturn(savedConfig);
+        when(fileRepository.save(any(File.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Config result = configService.createConfig(config, List.of(webFile));
+
+        assertEquals(1, result.getFiles().size());
+        File createdFile = result.getFiles().get(0);
+        assertEquals("priloha.pdf", createdFile.getFileName());
+        assertTrue(createdFile.getStoragePath().startsWith("configs/1/"));
+        assertTrue(createdFile.getStoragePath().endsWith("_priloha.pdf"));
+
+        verify(webFileDownloadService).downloadAndStoreAsync(
+                createdFile.getStoragePath(), "https://example.com/priloha.pdf", "application/pdf");
+        verify(supabaseStorageService, never()).uploadFileAsync(anyString(), any(), anyString());
+        verify(fileRepository).save(any(File.class));
     }
 }

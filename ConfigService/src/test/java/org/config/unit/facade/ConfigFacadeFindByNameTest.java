@@ -57,7 +57,7 @@ class ConfigFacadeFindByNameTest extends BaseConfigFacadeTest {
         Config entity = new Config();
         entity.setName(name);
 
-        FileDto fileWithoutContent = new FileDto(1L, "smlouva.pdf", "configs/1/uuid_smlouva.pdf", "application/pdf", null);
+        FileDto fileWithoutContent = new FileDto(1L, "smlouva.pdf", "configs/1/uuid_smlouva.pdf", "application/pdf", null, null);
         ConfigDto mappedDto = new ConfigDto(name, null, null, null, null, null, null, null, List.of(fileWithoutContent));
 
         byte[] storedBytes = "obsah souboru".getBytes();
@@ -82,7 +82,7 @@ class ConfigFacadeFindByNameTest extends BaseConfigFacadeTest {
         Config entity = new Config();
         entity.setName(name);
 
-        FileDto fileWithoutContent = new FileDto(1L, "smlouva.pdf", "configs/1/uuid_smlouva.pdf", "application/pdf", null);
+        FileDto fileWithoutContent = new FileDto(1L, "smlouva.pdf", "configs/1/uuid_smlouva.pdf", "application/pdf", null, null);
         ConfigDto mappedDto = new ConfigDto(name, null, null, null, null, null, null, null, List.of(fileWithoutContent));
 
         when(configService.findByName(name)).thenReturn(entity);

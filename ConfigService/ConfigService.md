@@ -13,7 +13,7 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 - `Config` (tabulka `configs`): `id`, `name` (unikátní, povinné), `description`, `timeout` (>= 0), `userAgent`, `url`, `customText`, `webText`, `tables` (viz níže), `files` (`@OneToMany`, `cascade = ALL`, `orphanRemoval = true`), `createdAt`/`updatedAt`.
 - `File` (tabulka `config_files`, unique `(config_id, file_name)`): `id`, `storagePath`, `fileName`, `fileType`, `createdAt`. **Neobsahuje binární obsah** - ten je v Supabase Storage, DB drží jen metadata.
 - `ConfigDto`: `name`, `description`, `timeout`, `userAgent`, `url`, `customText`, `webText`, `tables: List<Map<String, Object>>`, `files: List<FileDto>`.
-- `FileDto`: `id`, `fileName`, `storagePath`, `fileType`, `content` (base64, nullable).
+- `FileDto`: `id`, `fileName`, `storagePath`, `fileType`, `content` (base64, nullable), `sourceUrl` (nullable, jen při create - viz níže).
 
 ## Práce se soubory - klíčový kontrakt
 
@@ -21,10 +21,12 @@ Port: **8081**, base cesta REST API: `/scrapper_api/config`.
 - `content` - base64 obsah; vyplněný = nový/nahrazovaný soubor, který se nahraje do Supabase Storage. `storagePath` se v tomto případě **vždy generuje na serveru** (`buildStoragePath`, tvar `configs/<configId>/<uuid>_<fileName>`) - klient ho neposílá.
 - `storagePath` - použije se jen u staršího flow, kdy klient soubor nahrál sám přímo do Supabase Storage přes signed upload URL (`POST /files/upload-url` → nahrání bajtů → referuje se v `files` přes `storagePath`+`fileName`, bez `content`).
 - `fileType` - nepovinné; pokud je vyplněné, musí být validní MIME typ `typ/podtyp` (jinak `MediaType.parseMediaType` v `SupabaseStorageServiceImpl.uploadFile` spadne s neošetřenou `InvalidMimeTypeException` → 500, ne 400 - **známá mezera**, neplatný `fileType` by měl vracet 400).
+- `sourceUrl` - **jen při create**; vyplněný = server si sám stáhne obsah souboru z téhle URL a nahraje ho do Supabase Storage - klient posílá jen název a odkaz, ne obsah. Typicky odkaz, který `ScrapperService` strategie `DOWNLOAD_FILE` našel na webové stránce. Stažení i upload probíhá **asynchronně na pozadí** (`WebFileDownloadService.downloadAndStoreAsync`, balíček `org.config.service.webfile`) - stejný best-effort princip jako `uploadFileAsync`: chyba (stažení i uploadu) se jen loguje, request vrátí odpověď hned po uložení metadat.
 
 ### Create (`POST /scrapper_api/config`, JSON) vs. Edit (`PUT /scrapper_api/config/{name}`)
 
-- **Create**: `files` může kombinovat oba flow (staré `storagePath` i nové `content`) v jednom požadavku. Soubor musí mít vždy buď `content`, nebo `storagePath` (jinak 400). Config se nejdřív uloží (kvůli DB id), teprve pak se base64 soubory nahrají a připojí.
+- **Create**: `files` může kombinovat všechny tři flow (staré `storagePath`, `content`, i nové `sourceUrl`) v jednom požadavku. Soubor musí mít vždy právě jedno z `content`/`storagePath`/`sourceUrl` (jinak 400). Config se nejdřív uloží (kvůli DB id), teprve pak se base64 soubory nahrají/soubory z `sourceUrl` stáhnou a připojí.
+- **`sourceUrl` platí jen pro create** - `updateConfig`/`syncFiles` ho nezpracovává (soubor bez `content`, který neodpovídá existujícímu souboru, skončí standardní chybou "nebyl nalezen a nemá obsah k nahrání").
 - **Edit**: `files` reprezentuje **kompletní požadovaný seznam** souborů configu - záznam bez `content` musí odpovídat existujícímu souboru (jinak 400, "beze změny"); záznam s `content` u shodného `fileName` **nahradí** starý obsah (smaže starý soubor ze storage i DB, nahraje nový); existující soubory, které v požadavku vůbec nejsou, se **smažou**. `requestedFiles == null` znamená "soubory vůbec needitovat".
 - **Validace duplicit**: pokud `files` v jednom requestu (create i edit) obsahuje dva záznamy se **stejným `fileName`**, vrátí se 400 a nic se neuloží/nezmění (`ConfigServiceImpl.validateNoDuplicateFileNames`, volá se před jakoukoli mutací). Netýká se to legitimního nahrazení existujícího souboru (jeden záznam v requestu odpovídající souboru, co už u configu je) - to zůstává validní "replace".
 - Existuje i multipart create (`POST /scrapper_api/config`, `multipart/form-data`) a přímé file-endpointy (`POST/DELETE /{configId}/files`) pro editaci souborů mimo tento JSON kontrakt.
@@ -42,7 +44,7 @@ Obě volání (scraper i vector indexace) jsou **best-effort** - chyby se jen lo
 
 ConfigService **sám o sobě nescrapuje soubory ani tabulky z webové stránky** - to dělá klient (typicky integrace Metada) ještě před voláním create/update, pomocí `ScrapperService` strategií `DOWNLOAD_FILE`/`EXTRACT_TABLES` (viz `ScrapperService.md`), s možností u uživatele vybrat/smazat nalezené položky. Teprve výsledek se pošle do ConfigService:
 
-- **soubory z webu** se posílají úplně stejně jako ručně nahrané soubory - přes stávající `files: List<FileDto>` s vyplněným `content` (base64), žádná nová API cesta.
+- **soubory z webu** se dají poslat dvěma způsoby: (a) klient si je sám stáhne a pošle jako ručně nahrané soubory - `files: List<FileDto>` s vyplněným `content` (base64); nebo (b) klient pošle jen `fileName` + `sourceUrl` a server si obsah stáhne sám (jen při create, viz výše).
 - **tabulky z webu** se posílají v poli `tables` v **přesně stejném formátu**, jaký vrací `ScrapperService` pro strategii `EXTRACT_TABLES` (pole `tables` z jeho odpovědi - seznam `{"table": {"columns": [...], "row": [...]}}`, viz `ScrapperService.md`). V DB se ukládá jako serializovaný JSON text (`Config.tables`, sloupec `TEXT`) a stejný syrový JSON se posílá dál do `VectorServiceClient.indexConfig` jako pole `tables` - VectorService si ho sám parsuje a převádí na čitelný text pro indexaci (viz `VectorService.md`).
 - **text webové stránky** se posílá v poli `webText` (viz výše) - typicky stejný text, který klient dostal z `ScrapperService` strategie `EXTRACT_TEXT`.
 

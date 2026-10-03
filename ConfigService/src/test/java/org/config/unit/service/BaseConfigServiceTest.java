@@ -6,6 +6,7 @@ import org.config.data.repository.ConfigRepository;
 import org.config.data.repository.FileRepository;
 import org.config.service.impl.ConfigServiceImpl;
 import org.config.service.storage.SupabaseStorageService;
+import org.config.service.webfile.WebFileDownloadService;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -31,6 +32,9 @@ public abstract class BaseConfigServiceTest {
 
     @Mock
     protected VectorServiceClient vectorServiceClient;
+
+    @Mock
+    protected WebFileDownloadService webFileDownloadService;
 
     @InjectMocks
     protected ConfigServiceImpl configService;
