@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 @Component
@@ -74,7 +75,44 @@ public class ConfigFacadeImpl implements ConfigFacade {
     @Override
     public ConfigDto findByName(String name) {
         Config entity = configService.findByName(name);
-        return configMapper.toDto(entity);
+        return withFileContents(configMapper.toDto(entity));
+    }
+
+    /**
+     * Doplní do souborů configu jejich base64 obsah stažený ze Supabase Storage - mapper sám vrací
+     * {@code content == null}, protože DB drží jen metadata. Soubor, který se nepodaří stáhnout,
+     * zůstane bez obsahu (best-effort, viz {@link ConfigService#downloadFileContent}), aby jeden
+     * nedostupný soubor neshodil čtení celého configu.
+     */
+    private ConfigDto withFileContents(ConfigDto configDto) {
+        if (configDto == null || configDto.files() == null || configDto.files().isEmpty()) {
+            return configDto;
+        }
+
+        List<FileDto> filesWithContent = configDto.files().stream()
+                .map(file -> {
+                    byte[] content = configService.downloadFileContent(file.storagePath());
+                    return new FileDto(
+                            file.id(),
+                            file.fileName(),
+                            file.storagePath(),
+                            file.fileType(),
+                            content != null ? Base64.getEncoder().encodeToString(content) : null
+                    );
+                })
+                .toList();
+
+        return new ConfigDto(
+                configDto.name(),
+                configDto.description(),
+                configDto.timeout(),
+                configDto.userAgent(),
+                configDto.url(),
+                configDto.customText(),
+                configDto.webText(),
+                configDto.tables(),
+                filesWithContent
+        );
     }
 
     @Override

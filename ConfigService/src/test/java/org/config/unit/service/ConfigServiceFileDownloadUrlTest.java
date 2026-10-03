@@ -44,6 +44,33 @@ class ConfigServiceFileDownloadUrlTest extends BaseConfigServiceTest {
     }
 
     @Test
+    void downloadFileContent_ReturnsBytesFromStorage() {
+        when(supabaseStorageService.downloadFile("configs/1/uuid_smlouva.pdf")).thenReturn("obsah".getBytes());
+
+        byte[] result = configService.downloadFileContent("configs/1/uuid_smlouva.pdf");
+
+        assertArrayEquals("obsah".getBytes(), result);
+    }
+
+    @Test
+    void downloadFileContent_ReturnsNull_WhenStorageFails() {
+        when(supabaseStorageService.downloadFile("configs/1/chybi.pdf"))
+                .thenThrow(new RuntimeException("Supabase je nedostupné"));
+
+        byte[] result = configService.downloadFileContent("configs/1/chybi.pdf");
+
+        assertNull(result);
+    }
+
+    @Test
+    void downloadFileContent_ReturnsNull_WhenStoragePathIsBlank() {
+        byte[] result = configService.downloadFileContent("  ");
+
+        assertNull(result);
+        verify(supabaseStorageService, never()).downloadFile(anyString());
+    }
+
+    @Test
     void getFileDownloadUrl_LooksUpFileScopedToConfig_NotByNameAlone() {
         // stejné jméno souboru u jiného configu nesmí ovlivnit výsledek - hledá se přes (configId, fileName)
         when(fileRepository.findByConfigIdAndFileName(2L, "smlouva.pdf")).thenReturn(Optional.empty());

@@ -13,6 +13,13 @@ public interface SupabaseStorageService {
      */
     void uploadFileAsync(String storagePath, byte[] content, String contentType);
 
+    /**
+     * Stáhne obsah souboru ze Supabase Storage. Používá se při čtení configu, kdy se obsah souborů
+     * vrací klientovi jako base64 - pro pouhé předání odkazu klientovi je levnější
+     * {@link #createSignedDownloadUrl} (bajty pak aplikací vůbec neprochází).
+     */
+    byte[] downloadFile(String storagePath);
+
     void deleteFile(String storagePath);
 
     /**

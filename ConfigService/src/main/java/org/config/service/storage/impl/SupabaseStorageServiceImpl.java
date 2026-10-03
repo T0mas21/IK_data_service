@@ -78,6 +78,25 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
     }
 
     @Override
+    public byte[] downloadFile(String storagePath) {
+        HttpEntity<Void> request = new HttpEntity<>(buildAuthHeaders());
+
+        try {
+            ResponseEntity<byte[]> response = restTemplate.exchange(
+                    objectUri(storagePath), HttpMethod.GET, request, byte[].class);
+            return response.getBody();
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Soubor v úložišti nebyl nalezen.", e);
+        } catch (HttpClientErrorException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Stažení souboru ze Supabase Storage selhalo: " + e.getResponseBodyAsString(),
+                    e
+            );
+        }
+    }
+
+    @Override
     public void deleteFile(String storagePath) {
         HttpEntity<Void> request = new HttpEntity<>(buildAuthHeaders());
 

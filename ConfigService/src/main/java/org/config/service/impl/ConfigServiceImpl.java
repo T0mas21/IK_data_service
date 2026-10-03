@@ -12,6 +12,8 @@ import org.config.dto.FileDto;
 import org.config.dto.UploadUrlDto;
 import org.config.service.ConfigService;
 import org.config.service.storage.SupabaseStorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ConfigServiceImpl implements ConfigService {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfigServiceImpl.class);
 
     private final ConfigRepository configRepository;
     private final FileRepository fileRepository;
@@ -434,6 +438,20 @@ public class ConfigServiceImpl implements ConfigService {
                 ));
 
         return supabaseStorageService.createSignedDownloadUrl(file.getStoragePath());
+    }
+
+    @Override
+    public byte[] downloadFileContent(String storagePath) {
+        if (storagePath == null || storagePath.isBlank()) {
+            return null;
+        }
+
+        try {
+            return supabaseStorageService.downloadFile(storagePath);
+        } catch (Exception e) {
+            log.warn("Stažení obsahu souboru {} ze Supabase Storage selhalo: {}", storagePath, e.getMessage());
+            return null;
+        }
     }
 
     /**

@@ -46,6 +46,12 @@ ConfigService **sám o sobě nescrapuje soubory ani tabulky z webové stránky**
 - **tabulky z webu** se posílají v poli `tables` v **přesně stejném formátu**, jaký vrací `ScrapperService` pro strategii `EXTRACT_TABLES` (pole `tables` z jeho odpovědi - seznam `{"table": {"columns": [...], "row": [...]}}`, viz `ScrapperService.md`). V DB se ukládá jako serializovaný JSON text (`Config.tables`, sloupec `TEXT`) a stejný syrový JSON se posílá dál do `VectorServiceClient.indexConfig` jako pole `tables` - VectorService si ho sám parsuje a převádí na čitelný text pro indexaci (viz `VectorService.md`).
 - **text webové stránky** se posílá v poli `webText` (viz výše) - typicky stejný text, který klient dostal z `ScrapperService` strategie `EXTRACT_TEXT`.
 
+### Čtení configu vrací i obsah souborů
+
+`GET /scrapper_api/config/{name}` vrací u každého souboru v `files` i jeho **base64 `content`** - obsah se při čtení stáhne ze Supabase Storage (`ConfigFacadeImpl.withFileContents` → `ConfigService.downloadFileContent`). Soubor, který se nepodaří stáhnout, zůstane s `content: null` (best-effort, jen `log.warn`) - jeden nedostupný soubor neshodí čtení celého configu.
+
+**`GET /scrapper_api/config` (všechny configy) obsah souborů záměrně nevrací** (`content` zůstává `null`) - stahování všech souborů všech configů by odpověď neúnosně nafouklo a na Render free tieru riskovalo gateway timeout. Pro obsah konkrétního souboru bez čtení celého configu je levnější `GET /{configId}/files/{fileName}` (redirect na signed URL, bajty aplikací vůbec neprochází).
+
 ## Nahrávání obsahu souboru do Supabase Storage je asynchronní (best-effort)
 
 `createConfig`/`updateConfig`/`addFileToConfig` uloží metadata souboru (`storagePath`, `fileName`, `fileType`) do DB synchronně a hned vrátí odpověď klientovi - skutečné nahrání bajtů do Supabase Storage (`SupabaseStorageService.uploadFileAsync`, `@Async`, viz `@EnableAsync` na `ConfigService` app třídě) běží až po odpovědi na pozadí. Chyba uploadu se jen loguje (`log.warn`), nikdy nezpůsobí chybu requestu - stejný princip jako u reindexace.

@@ -64,4 +64,11 @@ public interface ConfigService {
      * souboru (jméno je unikátní jen v rámci daného configu, viz {@code ux_config_files_config_id_file_name}).
      */
     String getFileDownloadUrl(Long configId, String fileName);
+
+    /**
+     * Stáhne obsah souboru ze Supabase Storage podle jeho {@code storagePath}. Best-effort:
+     * při jakémkoli selhání (nedostupné úložiště, chybějící soubor, prázdná cesta) vrátí
+     * {@code null} místo výjimky - čtení configu kvůli jednomu nedostupnému souboru nesmí spadnout.
+     */
+    byte[] downloadFileContent(String storagePath);
 }
