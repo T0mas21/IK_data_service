@@ -13,8 +13,6 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Loguje přesné tělo každého HTTP requestu a response (metoda, cesta, status, body),
@@ -27,9 +25,6 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RequestResponseLoggingFilter.class);
 
     private static final int MAX_VALUE_LENGTH = 300;
-
-    // JSON string literál (klíč i hodnota) - uvozovky, escapované znaky uvnitř.
-    private static final Pattern JSON_STRING_VALUE = Pattern.compile("\"(?:[^\"\\\\]|\\\\.)*\"");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -52,6 +47,11 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * Ručně dohledává JSON string literály znak po znaku - regex nad desetitisíci znaky
+     * (naškrapovaný text stránky v těle) spolehlivě spadne na StackOverflowError kvůli
+     * rekurzivnímu backtrackování Java regex enginu u opakované alternace.
+     */
     static String sanitizeBody(byte[] body, String contentType) {
         if (body == null || body.length == 0) {
             return "";
@@ -60,20 +60,33 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             return "<multipart tělo nelogováno, " + body.length + " bajtů>";
         }
 
-        String content = new String(body, StandardCharsets.UTF_8);
-        Matcher matcher = JSON_STRING_VALUE.matcher(content);
-        StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
-            String match = matcher.group();
-            int innerLength = match.length() - 2; // bez uvozovek
-            if (innerLength > MAX_VALUE_LENGTH) {
-                matcher.appendReplacement(result,
-                        Matcher.quoteReplacement("\"<hodnota vynechána, " + innerLength + " znaků>\""));
-            } else {
-                matcher.appendReplacement(result, Matcher.quoteReplacement(match));
+        String text = new String(body, StandardCharsets.UTF_8);
+        StringBuilder result = new StringBuilder(Math.min(text.length(), 4096));
+        int n = text.length();
+        int i = 0;
+        while (i < n) {
+            char c = text.charAt(i);
+            if (c != '"') {
+                result.append(c);
+                i++;
+                continue;
             }
+
+            int contentStart = i + 1;
+            int j = contentStart;
+            while (j < n && text.charAt(j) != '"') {
+                j += (text.charAt(j) == '\\' && j + 1 < n) ? 2 : 1;
+            }
+            boolean closed = j < n;
+            int contentLength = j - contentStart;
+
+            if (closed && contentLength > MAX_VALUE_LENGTH) {
+                result.append('"').append("<hodnota vynechána, ").append(contentLength).append(" znaků>").append('"');
+            } else {
+                result.append(text, i, closed ? j + 1 : n);
+            }
+            i = closed ? j + 1 : n;
         }
-        matcher.appendTail(result);
         return result.toString();
     }
 }

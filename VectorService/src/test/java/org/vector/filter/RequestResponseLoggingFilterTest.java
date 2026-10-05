@@ -58,6 +58,20 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
+    void sanitizeBody_RealistickyVelkaHodnota_NespadneNaStackOverflow() {
+        // Regrese: text k zaindexování může mít stovky tisíc znaků - regex nad tak dlouhým
+        // řetězcem spadl na StackOverflowError a filtr tím shodil celou odpověď (500 na produkci).
+        String velkyText = "a".repeat(328316);
+        String json = "{\"configId\":39,\"text\":\"" + velkyText + "\"}";
+
+        String result = RequestResponseLoggingFilter.sanitizeBody(json.getBytes(StandardCharsets.UTF_8), "application/json");
+
+        assertTrue(result.contains("\"configId\":39"), "Zbytek JSONu musí zůstat čitelný");
+        assertTrue(result.contains("328316"), "Placeholder musí obsahovat počet znaků vynechané hodnoty");
+        assertFalse(result.contains(velkyText), "Původní dlouhý obsah nesmí být v logu");
+    }
+
+    @Test
     void sanitizeBody_MultipartTelo_NikdyNezalogovanoDoslovne() {
         byte[] body = "--boundary\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\ntajny obsah\r\n--boundary--"
                 .getBytes(StandardCharsets.UTF_8);

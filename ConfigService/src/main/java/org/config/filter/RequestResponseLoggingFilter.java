@@ -13,8 +13,6 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Loguje přesné tělo každého HTTP requestu a response, aby šlo dohledat komunikaci
@@ -26,8 +24,6 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RequestResponseLoggingFilter.class);
 
     static final int MAX_VALUE_LENGTH = 300;
-
-    private static final Pattern JSON_STRING_LITERAL = Pattern.compile("\"(?:[^\"\\\\]|\\\\.)*\"");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -54,6 +50,11 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
      * Sanitizuje tělo HTTP requestu/response pro potřeby logování - nahradí dlouhé
      * JSON hodnoty (typicky base64 obsah souboru) zástupným textem, ať log nezahltí.
      */
+    /**
+     * Ručně dohledává JSON string literály znak po znaku - regex nad desetitisíci znaky
+     * (base64 obsah souboru v těle) spolehlivě spadne na StackOverflowError kvůli
+     * rekurzivnímu backtrackování Java regex enginu u opakované alternace.
+     */
     static String sanitizeBody(byte[] body, String contentType) {
         if (body == null || body.length == 0) {
             return "";
@@ -63,19 +64,32 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         }
 
         String text = new String(body, StandardCharsets.UTF_8);
-        Matcher matcher = JSON_STRING_LITERAL.matcher(text);
-        StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
-            String match = matcher.group();
-            int contentLength = match.length() - 2; // bez uvozovek
-            if (contentLength > MAX_VALUE_LENGTH) {
-                matcher.appendReplacement(result,
-                        Matcher.quoteReplacement("\"<hodnota vynechána, " + contentLength + " znaků>\""));
-            } else {
-                matcher.appendReplacement(result, Matcher.quoteReplacement(match));
+        StringBuilder result = new StringBuilder(Math.min(text.length(), 4096));
+        int n = text.length();
+        int i = 0;
+        while (i < n) {
+            char c = text.charAt(i);
+            if (c != '"') {
+                result.append(c);
+                i++;
+                continue;
             }
+
+            int contentStart = i + 1;
+            int j = contentStart;
+            while (j < n && text.charAt(j) != '"') {
+                j += (text.charAt(j) == '\\' && j + 1 < n) ? 2 : 1;
+            }
+            boolean closed = j < n;
+            int contentLength = j - contentStart;
+
+            if (closed && contentLength > MAX_VALUE_LENGTH) {
+                result.append('"').append("<hodnota vynechána, ").append(contentLength).append(" znaků>").append('"');
+            } else {
+                result.append(text, i, closed ? j + 1 : n);
+            }
+            i = closed ? j + 1 : n;
         }
-        matcher.appendTail(result);
         return result.toString();
     }
 }

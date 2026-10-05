@@ -41,6 +41,22 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
+    void sanitizeBodyZvladneRealistickyVelkyBase64ObsahSouboruBezSpadu() {
+        // Regrese: GET configu s připojeným souborem vracel base64 obsah o stovkách tisíc
+        // znaků - regex nad tak dlouhým řetězcem spadl na StackOverflowError a filtr tím
+        // shodil celou odpověď (500 na produkci). Sanitizace musí nad reálně velkým tělem
+        // doběhnout bez pádu.
+        String velkyObsah = "a".repeat(328316);
+        String json = "{\"fileName\":\"Navrh staze.pdf\",\"content\":\"" + velkyObsah + "\"}";
+
+        String result = RequestResponseLoggingFilter.sanitizeBody(json.getBytes(StandardCharsets.UTF_8), "application/json");
+
+        assertThat(result).contains("\"fileName\":\"Navrh staze.pdf\"");
+        assertThat(result).contains("328316");
+        assertThat(result).doesNotContain(velkyObsah);
+    }
+
+    @Test
     void sanitizeBodyNikdyNezalogujeSyroveMultipartTelo() {
         String binarniObsah = "%PDF-1.4 binarni obsah souboru, ktery se nesmi dostat do logu";
         String telo = "--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.pdf\"\r\n\r\n"

@@ -31,6 +31,21 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
+    void realisticallyLargeJsonValueDoesNotCrashSanitization() {
+        // Regrese: naskrapovany text stranky muze mit stovky tisic znaku - regex nad tak
+        // dlouhym retezcem spadl na StackOverflowError a filtr tim shodil celou odpoved.
+        String velkyObsah = "a".repeat(328316);
+        String body = "{\"strategy\":\"STATIC\",\"scrapedText\":\"" + velkyObsah + "\"}";
+
+        String sanitized = RequestResponseLoggingFilter.sanitizeBody(
+                body.getBytes(StandardCharsets.UTF_8), "application/json");
+
+        assertThat(sanitized).contains("\"strategy\":\"STATIC\"");
+        assertThat(sanitized).contains("328316");
+        assertThat(sanitized).doesNotContain(velkyObsah);
+    }
+
+    @Test
     void longJsonValueIsReplacedWithPlaceholderContainingLength() {
         String longValue = "a".repeat(400);
         String body = "{\"strategy\":\"STATIC\",\"scrapedText\":\"" + longValue + "\"}";
