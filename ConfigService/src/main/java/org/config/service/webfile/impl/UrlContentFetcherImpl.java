@@ -1,7 +1,11 @@
 package org.config.service.webfile.impl;
 
+import org.config.service.webfile.UrlContent;
 import org.config.service.webfile.UrlContentFetcher;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,7 +28,9 @@ public class UrlContentFetcherImpl implements UrlContentFetcher {
     }
 
     @Override
-    public byte[] fetch(String url) {
-        return restTemplate.getForObject(URI.create(url), byte[].class);
+    public UrlContent fetch(String url) {
+        ResponseEntity<byte[]> response = restTemplate.exchange(URI.create(url), HttpMethod.GET, null, byte[].class);
+        MediaType contentType = response.getHeaders().getContentType();
+        return new UrlContent(response.getBody(), contentType != null ? contentType.toString() : null);
     }
 }

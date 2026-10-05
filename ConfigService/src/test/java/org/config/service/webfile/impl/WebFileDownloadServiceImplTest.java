@@ -1,6 +1,7 @@
 package org.config.service.webfile.impl;
 
 import org.config.service.storage.SupabaseStorageService;
+import org.config.service.webfile.UrlContent;
 import org.config.service.webfile.UrlContentFetcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,9 +43,32 @@ class WebFileDownloadServiceImplTest {
     @Test
     void downloadAndStoreAsync_UploadsDownloadedBytes_WhenDownloadSucceeds() {
         byte[] downloaded = "obsah souboru".getBytes();
-        when(urlContentFetcher.fetch("https://example.com/priloha.pdf")).thenReturn(downloaded);
+        when(urlContentFetcher.fetch("https://example.com/priloha.pdf"))
+                .thenReturn(new UrlContent(downloaded, "application/octet-stream"));
 
         service.downloadAndStoreAsync("configs/1/uuid_priloha.pdf", "https://example.com/priloha.pdf", "application/pdf");
+
+        verify(supabaseStorageService).uploadFile("configs/1/uuid_priloha.pdf", downloaded, "application/pdf");
+    }
+
+    @Test
+    void downloadAndStoreAsync_PouzijeContentTypeZeStazeneOdpovedi_KdyzKlientFileTypeNeposlal() {
+        byte[] downloaded = "obsah souboru".getBytes();
+        when(urlContentFetcher.fetch("https://example.com/priloha.pdf"))
+                .thenReturn(new UrlContent(downloaded, "application/pdf"));
+
+        service.downloadAndStoreAsync("configs/1/uuid_priloha.pdf", "https://example.com/priloha.pdf", null);
+
+        verify(supabaseStorageService).uploadFile("configs/1/uuid_priloha.pdf", downloaded, "application/pdf");
+    }
+
+    @Test
+    void downloadAndStoreAsync_PouzijeContentTypeZeStazeneOdpovedi_KdyzKlientFileTypePoslalPrazdny() {
+        byte[] downloaded = "obsah souboru".getBytes();
+        when(urlContentFetcher.fetch("https://example.com/priloha.pdf"))
+                .thenReturn(new UrlContent(downloaded, "application/pdf"));
+
+        service.downloadAndStoreAsync("configs/1/uuid_priloha.pdf", "https://example.com/priloha.pdf", "   ");
 
         verify(supabaseStorageService).uploadFile("configs/1/uuid_priloha.pdf", downloaded, "application/pdf");
     }
@@ -61,7 +85,7 @@ class WebFileDownloadServiceImplTest {
 
     @Test
     void downloadAndStoreAsync_DoesNotThrow_WhenUploadFails() {
-        when(urlContentFetcher.fetch(anyString())).thenReturn("obsah".getBytes());
+        when(urlContentFetcher.fetch(anyString())).thenReturn(new UrlContent("obsah".getBytes(), "application/pdf"));
         when(supabaseStorageService.uploadFile(anyString(), any(), anyString()))
                 .thenThrow(new RuntimeException("Supabase je nedostupné"));
 
