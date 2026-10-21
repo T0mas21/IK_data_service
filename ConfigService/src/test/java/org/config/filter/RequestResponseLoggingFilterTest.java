@@ -57,6 +57,21 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
+    void sanitizeBodyNahradiPrilisVelkeTeloPlaceholderemBezOhleduNaObsah() {
+        // Regrese: cele telo se bez ohledu na velikost nejdriv prevadelo na String (new
+        // String(body, UTF_8)), coz pro vicemegabytovy base64 obsah souboru (nad limitem
+        // Jacksonu pro JSON retezce) vycerpalo pamet a spadlo na OutOfMemoryError primo
+        // v tomto logovacim filtru - a tim shodilo celou instanci na Renderu.
+        byte[] prilisVelkeTelo = new byte[3_000_000];
+        java.util.Arrays.fill(prilisVelkeTelo, (byte) 'a');
+
+        String result = RequestResponseLoggingFilter.sanitizeBody(prilisVelkeTelo, "text/plain");
+
+        assertThat(result).contains("3000000");
+        assertThat(result).doesNotContain("a".repeat(1000));
+    }
+
+    @Test
     void sanitizeBodyNikdyNezalogujeSyroveMultipartTelo() {
         String binarniObsah = "%PDF-1.4 binarni obsah souboru, ktery se nesmi dostat do logu";
         String telo = "--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.pdf\"\r\n\r\n"

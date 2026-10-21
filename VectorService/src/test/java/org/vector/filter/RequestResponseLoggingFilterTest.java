@@ -72,6 +72,20 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
+    void sanitizeBody_PrilisVelkeTelo_NahrazenoPlaceholderemBezOhleduNaObsah() {
+        // Regrese: cele telo se bez ohledu na velikost nejdriv prevadelo na String (new
+        // String(body, UTF_8)), coz pro vicemegabytovy text k zaindexovani vycerpalo
+        // pamet a spadlo na OutOfMemoryError primo v tomto logovacim filtru.
+        byte[] prilisVelkeTelo = new byte[3_000_000];
+        java.util.Arrays.fill(prilisVelkeTelo, (byte) 'a');
+
+        String result = RequestResponseLoggingFilter.sanitizeBody(prilisVelkeTelo, "text/plain");
+
+        assertTrue(result.contains("3000000"));
+        assertFalse(result.contains("a".repeat(1000)));
+    }
+
+    @Test
     void sanitizeBody_MultipartTelo_NikdyNezalogovanoDoslovne() {
         byte[] body = "--boundary\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\ntajny obsah\r\n--boundary--"
                 .getBytes(StandardCharsets.UTF_8);

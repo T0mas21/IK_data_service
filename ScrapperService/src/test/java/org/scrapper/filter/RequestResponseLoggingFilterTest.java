@@ -59,6 +59,20 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
+    void oversizedBodyIsReplacedWithPlaceholderRegardlessOfContent() {
+        // Regrese: cele telo se bez ohledu na velikost nejdriv prevadelo na String (new
+        // String(body, UTF_8)), coz pro vicemegabytove telo vycerpalo pamet a spadlo na
+        // OutOfMemoryError primo v tomto logovacim filtru - a tim shodilo celou instanci.
+        byte[] oversizedBody = new byte[3_000_000];
+        java.util.Arrays.fill(oversizedBody, (byte) 'a');
+
+        String sanitized = RequestResponseLoggingFilter.sanitizeBody(oversizedBody, "text/plain");
+
+        assertThat(sanitized).contains("3000000");
+        assertThat(sanitized).doesNotContain("a".repeat(1000));
+    }
+
+    @Test
     void multipartBodyIsNeverLoggedVerbatim() {
         String secret = "obsah souboru, ktery se nesmi dostat do logu";
         byte[] body = secret.getBytes(StandardCharsets.UTF_8);

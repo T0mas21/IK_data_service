@@ -26,6 +26,13 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
     static final int MAX_VALUE_LENGTH = 300;
 
+    /**
+     * Horní limit velikosti těla, které se vůbec převádí na String - nad tímto limitem
+     * hrozí na paměťově omezené instanci (Render free tier) OutOfMemoryError, protože
+     * UTF-16 String zabere zhruba dvojnásobek velikosti raw bajtů.
+     */
+    static final int MAX_BODY_LENGTH_TO_SANITIZE = 2_000_000;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -55,6 +62,9 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         }
         if (contentType != null && contentType.startsWith("multipart/")) {
             return "<multipart tělo nelogováno, " + body.length + " bajtů>";
+        }
+        if (body.length > MAX_BODY_LENGTH_TO_SANITIZE) {
+            return "<tělo nelogováno, " + body.length + " bajtů - příliš velké>";
         }
 
         String text = new String(body, StandardCharsets.UTF_8);

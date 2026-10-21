@@ -38,6 +38,14 @@ public class ConfigServiceImpl implements ConfigService {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigServiceImpl.class);
 
+    /**
+     * Horní limit velikosti jednoho nahrávaného souboru (base64 {@code content} v requestu) -
+     * bez něj by přes base64 pole mohl projít libovolně velký soubor až k limitu Jacksonu
+     * pro JSON řetězce, což na paměťově omezené instanci (Render free tier) riskuje OutOfMemoryError
+     * ještě před touto validací.
+     */
+    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
+
     private final ConfigRepository configRepository;
     private final FileRepository fileRepository;
     private final SupabaseStorageService supabaseStorageService;
@@ -180,6 +188,7 @@ public class ConfigServiceImpl implements ConfigService {
                             "Obsah souboru '" + fileDto.fileName() + "' není platná base64 hodnota."
                     );
                 }
+                validateFileSize(fileDto.fileName(), decoded);
                 toUpload.add(new NewFileUpload(fileDto.fileName(), fileDto.fileType(), decoded));
             } else if (hasStoragePath) {
                 preUploaded.add(fileDto);
@@ -193,6 +202,19 @@ public class ConfigServiceImpl implements ConfigService {
                                 + "z předchozího nahrání přes /upload-url."
                 );
             }
+        }
+    }
+
+    /**
+     * Ověří, že dekódovaný obsah souboru nepřekračuje {@link #MAX_FILE_SIZE_BYTES}.
+     */
+    private void validateFileSize(String fileName, byte[] decoded) {
+        if (decoded.length > MAX_FILE_SIZE_BYTES) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Soubor '" + fileName + "' je příliš velký (" + decoded.length
+                            + " bajtů). Maximální povolená velikost je " + MAX_FILE_SIZE_BYTES + " bajtů."
+            );
         }
     }
 
@@ -281,6 +303,7 @@ public class ConfigServiceImpl implements ConfigService {
                             "Obsah souboru '" + fileDto.fileName() + "' není platná base64 hodnota."
                     );
                 }
+                validateFileSize(fileDto.fileName(), decoded);
                 contentsToUpload.put(fileDto.fileName(), decoded);
                 typesToUpload.put(fileDto.fileName(), fileDto.fileType());
             } else if (!existingNames.contains(fileDto.fileName())) {

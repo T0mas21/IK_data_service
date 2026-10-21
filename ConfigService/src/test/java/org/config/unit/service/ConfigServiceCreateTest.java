@@ -188,6 +188,28 @@ class ConfigServiceCreateTest extends BaseConfigServiceTest {
     }
 
     @Test
+    void createConfig_ThrowsException_WhenFileContentExceedsMaxSize() {
+        Config config = new Config();
+        config.setName("config_with_too_big_file");
+
+        byte[] prilisVelkyObsah = new byte[10 * 1024 * 1024 + 1];
+        String base64Content = Base64.getEncoder().encodeToString(prilisVelkyObsah);
+        FileDto tooBigFile = new FileDto(null, "velky.pdf", null, "application/pdf", base64Content, null);
+
+        when(configRepository.findByName("config_with_too_big_file")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> configService.createConfig(config, List.of(tooBigFile))
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("velky.pdf"));
+        verify(configRepository, never()).save(any());
+        verify(fileRepository, never()).save(any());
+    }
+
+    @Test
     void createConfig_ThrowsException_WhenDuplicateFileNamesInRequest() {
         Config config = new Config();
         config.setName("config_with_duplicate_files");
