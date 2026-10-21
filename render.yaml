@@ -5,6 +5,10 @@ services:
     dockerContext: .
     dockerfilePath: ConfigService/Dockerfile
     plan: free
+    buildFilter:
+      ignoredPaths:
+        - .claude/**
+        - "**/*.md"
     envVars:
       - key: DB_URL
         sync: false
@@ -23,6 +27,10 @@ services:
     dockerContext: .
     dockerfilePath: ScrapperService/Dockerfile
     plan: free
+    buildFilter:
+      ignoredPaths:
+        - .claude/**
+        - "**/*.md"
     envVars:
       - key: CONFIG_SERVICE_URL
         value: http://config-service:10000
@@ -33,6 +41,10 @@ services:
     dockerContext: .
     dockerfilePath: VectorService/Dockerfile
     plan: free
+    buildFilter:
+      ignoredPaths:
+        - .claude/**
+        - "**/*.md"
     envVars:
       - key: DB_URL
         sync: false
