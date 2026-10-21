@@ -54,6 +54,10 @@ Tenhle projekt je malý (3 služby), takže vícero agentů/subagentů se vyplat
 - Pro běžný bugfix/feature v rámci jedné služby subagenty nepoužívej - lineární postup (test → implementace → test suite) je rychlejší a přehlednější bez nich.
 - Workflow (víceagentová orchestrace) spouštěj jen na výslovnou žádost - kvůli spotřebě tokenů to není defaultní volba.
 
+## Komunikace během práce
+
+Při delším přemýšlení nebo vícekrokové práci průběžně viditelně popisuj (v textu mimo tool call), nad čím právě přemýšlíš a co přesně děláš - ne až na konci shrnutí, ale v průběhu.
+
 ## Práce s gitem
 
 - Branch model: pracuje se přímo na `main`, žádné feature branche/PR flow.
