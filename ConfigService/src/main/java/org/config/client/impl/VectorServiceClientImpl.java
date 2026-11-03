@@ -20,7 +20,9 @@ public class VectorServiceClientImpl implements VectorServiceClient {
 
     private static final Logger log = LoggerFactory.getLogger(VectorServiceClientImpl.class);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+    // VectorService na Render free tieru se z cold startu probouzí ~95 s - s 30 s timeoutem
+    // indexace/mazání indexu po uspání služby tiše selhaly a v indexu zůstávala stará data.
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(150);
 
     private final RestTemplate restTemplate;
 

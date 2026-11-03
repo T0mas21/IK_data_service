@@ -17,9 +17,9 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: SCRAPPER_SERVICE_URL
-        value: http://scrapper-service:10000
+        value: https://scrapper-service-dpwg.onrender.com
       - key: VECTOR_SERVICE_URL
-        value: http://vector-service:10000
+        value: https://vector-service-xioc.onrender.com
 
   - type: web
     name: scrapper-service
@@ -33,7 +33,7 @@ services:
         - "**/*.md"
     envVars:
       - key: CONFIG_SERVICE_URL
-        value: http://config-service:10000
+        value: https://config-service-5zts.onrender.com
 
   - type: web
     name: vector-service

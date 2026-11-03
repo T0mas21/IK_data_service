@@ -26,4 +26,15 @@ class VectorServiceClientImplTimeoutTest {
         assertThat(connectTimeout).isGreaterThan(0);
         assertThat(readTimeout).isGreaterThan(0);
     }
+
+    @Test
+    void readTimeoutCoversVectorServiceColdStart() {
+        VectorServiceClientImpl client = new VectorServiceClientImpl(new RestTemplateBuilder());
+
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(client, "restTemplate");
+        int readTimeout = (int) ReflectionTestUtils.getField(restTemplate.getRequestFactory(), "readTimeout");
+
+        // VectorService na Render free tieru se z cold startu probouzí ~95 s
+        assertThat(readTimeout).isGreaterThanOrEqualTo(150_000);
+    }
 }

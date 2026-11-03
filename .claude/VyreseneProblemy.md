@@ -4,6 +4,36 @@ Log vyřešených produkčních bugů a jejich diagnostiky - ne changelog změn 
 
 ---
 
+## Sémantické vyhledávání vracelo smazaná data - ConfigService se k VectorService nikdy nedovolal
+
+**Datum:** 2026-11-03
+**Služba:** ConfigService (+ `render.yaml`)
+
+### Příznak
+
+Vyhledávání ve VectorService vracelo úryvky ze souborů/configů, které už byly smazané, a nové configy ve výsledcích chyběly. Create/update/delete configu přitom vracely úspěch.
+
+### Diagnostický postup
+
+1. **Volání VectorService je best-effort** (`VectorServiceClientImpl` chyby jen loguje) - takže hledej `WARN` v logu ConfigService, ne chybu v odpovědi: `Zaindexování/Smazání indexu configu N ve Vector službě selhalo`.
+2. **Přečti přesný text výjimky.** `I/O error on POST request for "http://vector-service:10000/...": vector-service` - za dvojtečkou je jen hostname = `UnknownHostException`, ne timeout ani chyba VectorService.
+3. **Ověř druhou stranu:** request log VectorService neobsahoval žádné `/scrapper_api/vector/*` volání - požadavky tam nikdy nedorazily.
+4. **Ověř síťový model Renderu v dokumentaci** (render.com/docs/private-network): interní hostname má náhodný suffix (`vector-service-xioc`), a hlavně *"Free web services can send private network requests, but they can't receive them."*
+
+### Kořenová příčina
+
+`render.yaml` měl `VECTOR_SERVICE_URL`/`SCRAPPER_SERVICE_URL` ve tvaru docker-compose (`http://vector-service:10000`). Na Renderu takový hostname neexistuje a free tier navíc interní provoz nepřijímá - indexace ani mazání indexu nikdy neproběhly.
+
+### Oprava
+
+Veřejné URL služeb (`https://vector-service-xioc.onrender.com` apod.) v env proměnných na Renderu i v `render.yaml`; read timeout volání VectorService zvýšen na 150 s (cold start ~95 s). Starý index je nutné uklidit ručně (`DELETE /scrapper_api/vector/configs/{id}` pro smazané configy, znovu uložit existující).
+
+### Poučení do budoucna
+
+Adresy z `docker-compose` (název služby jako hostname) nefungují na Renderu - na free tieru je mezi službami nutné volat veřejnou URL a počítat s cold startem. Best-effort volání, která chyby jen logují, umí skrýt úplně nefunkční integraci - při podezřelých datech nejdřív projdi WARN logy volajícího.
+
+---
+
 ## Upload souboru s mezerou/diakritikou v názvu tiše selhával - dvojité URL enkódování cesty
 
 **Datum:** 2026-10-01
