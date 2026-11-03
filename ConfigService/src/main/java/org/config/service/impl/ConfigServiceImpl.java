@@ -344,11 +344,17 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     @Transactional
     public void deleteByName(String name) {
-        Config existingConfig = configRepository.findByName(name)
+        Config existingConfig = configRepository.findByNameWithFiles(name)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Konfigurační soubor '" + name + "' neexistuje."
                 ));
+        // Soubory se z bucketu mažou PŘED smazáním z DB: když Supabase selže, výjimka (502) zruší
+        // celé mazání a config i se záznamy souborů zůstane - jde to zopakovat a v bucketu nezůstanou
+        // osiřelé objekty, na které už v DB nic neukazuje. Už neexistující objekt (404) deleteFile ignoruje.
+        for (File file : existingConfig.getFiles()) {
+            supabaseStorageService.deleteFile(file.getStoragePath());
+        }
         this.configRepository.deleteByName(name);
         vectorServiceClient.deleteConfig(existingConfig.getId());
     }
